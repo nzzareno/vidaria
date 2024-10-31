@@ -48,6 +48,7 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     Page<Movie> getBestMoviesByGenres(@Param("genre") String genre, Pageable pageable);
 
 
+
     @Query("SELECT m FROM Movie m LEFT JOIN m.genres g WHERE LOWER(g.name) IN :genres ORDER BY m.rating DESC")
     List<Movie> findByGenresIn(List<String> genres);
 }

@@ -22,8 +22,16 @@ const IndexLayout = () => {
   useEffect(() => {
     const fetchMovies = async () => {
       dispatch(setLoading());
+      const selectedMovies = [
+        "Inception",
+        "Interstellar",
+        "The Wild Robot",
+        "Black Cab",
+        "Schindler's List",
+        "The Menendez Brothers",
+      ];
       try {
-        const movies = await getFeaturedMovies();
+        const movies = await getFeaturedMovies(selectedMovies);
         const filteredMovies = movies.filter(
           (movie, index, self) =>
             index ===
@@ -44,7 +52,7 @@ const IndexLayout = () => {
       dispatch(setLoading());
       try {
         const featuredSeries = await getFeaturedSeries({
-          totalPages: 5,
+          totalPages: 10,
           size: 20,
         });
         dispatch(setFeaturedSeries(featuredSeries));

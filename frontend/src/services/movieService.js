@@ -1,6 +1,8 @@
 import axios from "axios";
+import { setLoading, setMovies } from "../redux/movieSlice";
+import { setError } from "../redux/serieSlice";
 
-const API_URL = "http://localhost:8081/movies";
+const API_URL = `${import.meta.env.VITE_BACKEND_URL}/movies`;
 
 export const getMovies = async () => {
   try {
@@ -23,6 +25,28 @@ export const getMoviesByCategory = async (
     },
   });
   return response.data.content;
+};
+
+export const getMoviesByGenre = async (genreName, params = { page: 1, size: 20 }) => {
+  // Realiza la solicitud utilizando el nombre del género en la URL
+  const response = await axios.get(`${API_URL}/best/${genreName.toLowerCase()}`, {
+    params: {
+      page: params.page,
+      size: params.size,
+    },
+  });
+  return response.data.content;
+};
+
+export const fetchMoviesByCategory = async (category, dispatch) => {
+  dispatch(setLoading(true));
+  try {
+    const movies = await getMoviesByCategory(category);
+    dispatch(setMovies(movies));
+  } catch (error) {
+    console.error(`Error loading ${category} movies:`, error);
+    dispatch(setError(error.message));
+  }
 };
 
 export const getMovie = async (id) => {
@@ -91,9 +115,11 @@ export const searchMovies = async (filters = {}) => {
   }
 };
 
-export const getFeaturedMovies = async () => {
+export const getFeaturedMovies = async (selectedMovieNames) => {
   try {
-    const response = await fetch(`${API_URL}/featured`);
+    const response = await fetch(
+      `${API_URL}/featured?movieNames=${selectedMovieNames.join(",")}`
+    );
     return checkResponse(response);
   } catch (error) {
     console.error("Failed to fetch featured movies:", error);

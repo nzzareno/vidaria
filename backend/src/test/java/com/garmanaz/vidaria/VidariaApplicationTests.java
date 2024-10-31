@@ -9,5 +9,4 @@ class VidariaApplicationTests {
     @Test
     void contextLoads() {
     }
-
 }

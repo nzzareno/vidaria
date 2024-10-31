@@ -10,6 +10,7 @@ const movieSlice = createSlice({
     currentPage: 1,
     filters: {},
     featuredMovies: [],
+    taglineMovie: "",
   },
   reducers: {
     setMovies: (state, action) => {
@@ -24,8 +25,8 @@ const movieSlice = createSlice({
     setSelectedMovie: (state, action) => {
       state.selectedMovie = action.payload;
     },
-    setLoading: (state) => {
-      state.loading = true;
+    setLoading: (state, action) => {
+      state.loading = action.payload;
     },
     setError: (state, action) => {
       state.loading = false;
@@ -37,6 +38,12 @@ const movieSlice = createSlice({
     setFilters: (state, action) => {
       state.filters = action.payload;
     },
+
+    setMovieTagline: (state, action) => {
+      console.log("Updating tagline to:", action.payload); // Verifica que se recibe correctamente
+      state.taglineMovie = action.payload;
+    },
+
     clearError: (state) => {
       state.error = null;
     },
@@ -54,4 +61,5 @@ export const {
   setFilters,
   clearError,
   setFeaturedMovies,
+  setMovieTagline,
 } = movieSlice.actions;

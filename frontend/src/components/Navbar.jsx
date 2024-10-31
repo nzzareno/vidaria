@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import {
   logout,
   login,
@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setError, clearError } from "../redux/authSlice";
 import { motion } from "framer-motion"; // Importar motion
 import ModalContext from "../context/ModalContext";
+import SuccessNotification from "./SuccessNotification"; // Importa la notificación
 
 const Navbar = () => {
   const {
@@ -23,11 +24,16 @@ const Navbar = () => {
     formData,
     setFormErrors,
   } = useContext(ModalContext);
+
   const user = useSelector((state) => state.auth.user);
   const error = useSelector((state) => state.auth.error);
   const [hovered, setHovered] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false); // Estado para controlar el éxito del registro
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  // Ref para hacer foco en el input
+  const usernameInputRef = useRef(null);
 
   // useEffect para obtener datos de usuario en el montaje inicial
   useEffect(() => {
@@ -65,7 +71,34 @@ const Navbar = () => {
     };
   }, [error, user, setFormErrors, setFormData]);
 
-    const handleLogout = () => {
+  // Enfocar automáticamente en el input cuando se abra el modal
+  useEffect(() => {
+    if (isModalOpen && usernameInputRef.current) {
+      usernameInputRef.current.focus();
+    }
+  }, [isModalOpen]);
+
+  // Función para manejar el clic en Sign In
+  const handleOpenSignIn = () => {
+    handleOpenModal("login");
+    setTimeout(() => {
+      if (usernameInputRef.current) {
+        usernameInputRef.current.focus(); // Colocar el foco automáticamente
+      }
+    }, 100); // Dar un pequeño retraso para que el modal se abra antes de enfocar
+  };
+
+  // Función para manejar el clic en Sign Up
+  const handleOpenSignUp = () => {
+    handleOpenModal("subscribe");
+    setTimeout(() => {
+      if (usernameInputRef.current) {
+        usernameInputRef.current.focus(); // Colocar el foco automáticamente
+      }
+    }, 100); // Dar un pequeño retraso para que el modal se abra antes de enfocar
+  };
+
+  const handleLogout = () => {
     logout();
     dispatch({ type: "auth/logout" });
     navigate("/");
@@ -123,7 +156,6 @@ const Navbar = () => {
       if (data.error) {
         dispatch(setError(data.error));
       } else {
-        // Obtener datos del usuario después de iniciar sesión
         const userData = await fetchUserData();
         if (userData) {
           dispatch({ type: "auth/login", payload: userData });
@@ -145,19 +177,27 @@ const Navbar = () => {
       if (data.error) {
         dispatch(setError(data.error));
       } else {
-        alert("User registered successfully");
-        setIsModalOpen(false);
+        setShowSuccess(true); // Mostrar la notificación de éxito
+        setIsModalOpen(false); // Cerrar el modal de registro
+        handleOpenModal("login"); // Abrir el modal de login
       }
     } catch (error) {
       console.error(error);
-      dispatch(setError(" Error registering user"));
+      dispatch(setError("Error registering user"));
     }
   };
 
   const renderModalContent = () => {
     const modalContent = {
       login: (
-        <div className="relative">
+        <motion.div
+          key="login"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          transition={{ duration: 0.3 }}
+          className="relative"
+        >
           <form className="mt-4" onSubmit={handleLogin}>
             <div className="mb-4">
               <input
@@ -168,6 +208,7 @@ const Navbar = () => {
                 required
                 value={formData.username}
                 onChange={handleInputChange}
+                ref={usernameInputRef} // Foco en este input
               />
               <p className="text-red-500 text-sm mt-1 h-4">
                 {formErrors.username}
@@ -196,10 +237,17 @@ const Navbar = () => {
               </a>
             </p>
           </form>
-        </div>
+        </motion.div>
       ),
       subscribe: (
-        <div className="relative">
+        <motion.div
+          key="subscribe"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          transition={{ duration: 0.3 }}
+          className="relative"
+        >
           <form className="mt-4" onSubmit={handleRegister}>
             <div className="mb-4">
               <input
@@ -210,6 +258,7 @@ const Navbar = () => {
                 required
                 value={formData.username}
                 onChange={handleInputChange}
+                ref={usernameInputRef} // Foco en este input
               />
               <p className="text-red-500 text-sm mt-1 h-4">
                 {formErrors.username}
@@ -243,12 +292,11 @@ const Navbar = () => {
                 {formErrors.password}
               </p>
             </div>
-            <p className="text-red-500 text-sm">{error}</p>
             <button className="w-full bg-white text-black p-2 rounded-lg transition duration-200 hover:bg-green-600 mt-2">
               Subscribe
             </button>
           </form>
-        </div>
+        </motion.div>
       ),
     };
 
@@ -258,22 +306,22 @@ const Navbar = () => {
   return (
     <>
       <motion.nav
-        className="bg-[rgba(0,0,0,0.91)] text-white text-center p-2 fixed top-0 w-full z-50"
-        initial={{ opacity: 0, y: -50 }} // Animación inicial
-        animate={{ opacity: 1, y: 0 }} // Animación al mostrar
-        transition={{ duration: 0.4 }} // Duración de la animación
+        className="bg-[rgba(0,0,0,0.91)] text-white text-center p-2 fixed top-0 w-full z-40"
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
       >
         <div className="flex justify-between items-center font-maxSans">
           <div>
             <motion.h3
-              initial={{ scale: 1, color: "#FFFFFF" }} // Colores iniciales y escala inicial
+              initial={{ scale: 1, color: "#FFFFFF" }}
               animate={{
-                color: hovered ? "#FF69B4" : "#FFFFFF", // Cambiar el color de blanco a rosa
-                scale: hovered ? 1.1 : 1, // Cambiar la escala en hover
+                color: hovered ? "#FF69B4" : "#FFFFFF",
+                scale: hovered ? 1.1 : 1,
               }}
-              transition={{ duration: 0.3 }} // Duración de la transición
-              onMouseEnter={() => setHovered(true)} // Hover activado
-              onMouseLeave={() => setHovered(false)} // Hover desactivado
+              transition={{ duration: 0.3 }}
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
               className="text-4xl font-bold cursor-pointer"
             >
               vidaria
@@ -281,8 +329,6 @@ const Navbar = () => {
           </div>
           <div>
             {user ? (
-              // BARRA DE NAV BLANCA MINIMALISTA
-
               <div className="flex items-center">
                 <span className="mr-4 text-gray-800">{user.username}</span>
                 <button
@@ -295,14 +341,14 @@ const Navbar = () => {
             ) : (
               <div className="flex">
                 <button
-                  onClick={() => handleOpenModal("login")}
+                  onClick={handleOpenSignIn} // Abrir modal de login
                   className="rounded-md bg-transparent py-2 px-4 border border-transparent text-center font-light text-white transition-all ml-2 text-lg hover:underline duration-200"
                   type="button"
                 >
                   Sign In
                 </button>
                 <button
-                  onClick={() => handleOpenModal("subscribe")}
+                  onClick={handleOpenSignUp} // Abrir modal de registro
                   className="rounded-md bg-transparent py-2 px-4 border border-transparent text-center font-light text-white transition-all ml-2 text-lg hover:underline duration-200"
                   type="button"
                 >
@@ -313,6 +359,8 @@ const Navbar = () => {
           </div>
         </div>
       </motion.nav>
+
+      {/* Modal de login/registro */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -322,6 +370,15 @@ const Navbar = () => {
       >
         {renderModalContent()}
       </Modal>
+
+      {/* Notificación de éxito */}
+      {showSuccess && (
+        <SuccessNotification
+          message="¡Registro exitoso!"
+          onClose={() => setShowSuccess(false)}
+          className="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg "
+        />
+      )}
     </>
   );
 };

@@ -345,9 +345,10 @@ public class MovieService {
         return null;
     }
 
-    public Page<Movie> getBestMoviesByGenres(String genre) {
-        System.out.println("Fetching best movies for genre: " + genre);
-        return movieRepository.getBestMoviesByGenres(genre, PageRequest.of(0, 10));
+
+    public Page<Movie> getBestMoviesByGenres(String genre, Pageable pageable) {
+
+        return movieRepository.getBestMoviesByGenres(genre, pageable);
     }
 
     public List<Movie> getMoviesByGenre(List<String> genre) {

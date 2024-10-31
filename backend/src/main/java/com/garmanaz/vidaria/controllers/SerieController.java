@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -49,23 +50,21 @@ public class SerieController {
     public ResponseEntity<Page<Serie>> searchSerie(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) List<String> genres,
-            @RequestParam(required = false) List<String> categories,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate releaseDateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate releaseDateTo,
             @RequestParam(required = false) Double ratingFrom,
             @RequestParam(required = false) Double ratingTo,
             @RequestParam(required = false) Double popularityFrom,
             @RequestParam(required = false) Double popularityTo,
-            @RequestParam(required = false) @DefaultValue("title") String sortBy,
-            @RequestParam(required = false, defaultValue = "asc") String sortOrder,
             Pageable pageable) {
         try {
-            Page<Serie> series = serieService.searchSeries(title, genres, categories, releaseDateFrom, releaseDateTo, ratingFrom, ratingTo, popularityFrom, popularityTo, sortBy, sortOrder, pageable);
+            Page<Serie> series = serieService.searchSeries(title, genres, releaseDateFrom, releaseDateTo, ratingFrom, ratingTo, popularityFrom, popularityTo, pageable);
             return new ResponseEntity<>(series, HttpStatus.OK);
         } catch (Exception e) {
             throw new RuntimeException("Error searching series: " + e.getMessage());
         }
     }
+
 
     @GetMapping("/best/{genre}")
     public ResponseEntity<Page<Serie>> getBestSeriesByGenres(@PathVariable String genre, Pageable pageable) {
@@ -100,11 +99,12 @@ public class SerieController {
 
     @GetMapping("/{serie}")
     public ResponseEntity<Serie> getSerieById(@PathVariable Long serie) {
-            return ResponseEntity.ok(serieService.getSeriesById(serie));
+        return ResponseEntity.ok(serieService.getSeriesById(serie));
     }
 
     @GetMapping("/sync")
-    public ResponseEntity<String> syncSeries(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "1500") int totalSeries) {
+    @Transactional
+    public ResponseEntity<String> syncSeries(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int totalSeries) {
         try {
             serieService.saveAllSeries(page, totalSeries);
             return ResponseEntity.ok("Series synchronized successfully!");

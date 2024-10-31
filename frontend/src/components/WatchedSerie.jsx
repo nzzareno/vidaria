@@ -49,3 +49,5 @@ export const WatchedSerie = ({ serie }) => {
     </motion.div>
   );
 };
+
+

@@ -24,10 +24,12 @@ public class Serie {
     @Column(length = 3000)
     private String description;
 
-    @Column(name = "genre_id")
-    @JsonProperty("genre_id")
     @ManyToMany
-    @JoinTable(name = "serie_genre", joinColumns = @JoinColumn(name = "serie_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
+    @JoinTable(name = "serie_genre",
+            joinColumns = @JoinColumn(name = "serie_id"),
+            inverseJoinColumns = @JoinColumn(name = "genre_id"))
+    @JsonProperty("genre_id")
+    @JsonManagedReference
     private List<Genre> genreID;
 
     @Column(length = 3000)

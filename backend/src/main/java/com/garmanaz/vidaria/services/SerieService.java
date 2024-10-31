@@ -7,7 +7,6 @@ import com.garmanaz.vidaria.entities.Serie;
 import com.garmanaz.vidaria.repositories.GenreRepository;
 import com.garmanaz.vidaria.repositories.SeasonRepository;
 import com.garmanaz.vidaria.repositories.SerieRepository;
-import com.garmanaz.vidaria.utils.GlobalExceptionHandler;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
@@ -33,7 +32,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class SerieService {
 
     private static final String API_URL = "https://api.themoviedb.org/3/tv/";
@@ -60,43 +58,62 @@ public class SerieService {
         }
     }
 
-    // get best series for genre
     public Page<Serie> getBestSeriesByGenres(String genre, Pageable pageable) {
         return serieRepository.getBestSeriesByGenres(genre, pageable);
     }
 
+    @Transactional
     public void saveAllSeries(int page, int totalSeries) {
         syncGenres();
         AtomicInteger savedSeriesCount = new AtomicInteger();
         int pageIndex = page;
 
+        logger.info("Iniciando sincronización de series. Página inicial: {}, Total de series a guardar: {}", page, totalSeries);
+
+        // Mientras no hayamos alcanzado el número de series a guardar
         while (savedSeriesCount.get() < totalSeries) {
             List<Serie> seriesToSave = new ArrayList<>();
+
+            // Obtener series de las distintas categorías por página
             seriesToSave.addAll(fetchSeries("popular", pageIndex));
             seriesToSave.addAll(fetchSeries("top_rated", pageIndex));
             seriesToSave.addAll(fetchSeries("airing_today", pageIndex));
             seriesToSave.addAll(fetchSeries("on_the_air", pageIndex));
 
+            logger.info("Se obtuvieron {} series de la página {}.", seriesToSave.size(), pageIndex);
+
             for (Serie serie : seriesToSave) {
                 serieRepository.findById(serie.getId()).ifPresentOrElse(existingSerie -> {
+                    // Actualizar serie existente
                     existingSerie.setSeasons(serie.getSeasons());
                     serieRepository.save(existingSerie);
+                    savedSeriesCount.getAndIncrement();  // Incrementa el contador al actualizar
+                    logger.info("Serie actualizada: {} (ID: {}). Total series guardadas: {}", serie.getTitle(), serie.getId(), savedSeriesCount.get());
                 }, () -> {
+                    // Guardar nueva serie
                     serieRepository.save(serie);
                     for (Season season : serie.getSeasons()) {
                         season.setSerie(serie);
                         seasonRepository.save(season);
                     }
-                    savedSeriesCount.getAndIncrement();
+                    savedSeriesCount.getAndIncrement();  // Incrementa cuando se guarda una nueva serie
+                    logger.info("Serie guardada: {} (ID: {}). Total series guardadas: {}", serie.getTitle(), serie.getId(), savedSeriesCount.get());
                 });
 
+                // Verifica si ya se alcanzó el límite de series a guardar
                 if (savedSeriesCount.get() >= totalSeries) {
+                    logger.info("Se alcanzó el límite de series guardadas: {}", savedSeriesCount.get());
                     break;
                 }
             }
+
+            // Incrementar el número de página para la siguiente solicitud
             pageIndex++;
         }
+
+        logger.info("Sincronización de series completada. Total de series guardadas: {}", savedSeriesCount.get());
     }
+
 
     //getMostPopularAndTopRated
     public Page<Serie> getMostPopularAndTopRated(Pageable pageable) {
@@ -216,61 +233,10 @@ public class SerieService {
         return Collections.emptyList();
     }
 
-    public Page<Serie> searchSeries(String title, List<String> categories, List<String> genres, LocalDate releaseDateFrom, LocalDate releaseDateTo, Double ratingFrom, Double ratingTo, Double popularityFrom, Double popularityTo, String sortBy, String sortOrder, Pageable pageable) {
+    public Page<Serie> searchSeries(String title, List<String> genres, LocalDate releaseDateFrom, LocalDate releaseDateTo, Double ratingFrom, Double ratingTo, Double popularityFrom, Double popularityTo, Pageable pageable) {
 
-        Specification<Serie> specification = (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
 
-            // Insensitive search for title
-            if (title != null && !title.isEmpty()) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%" + title.toLowerCase() + "%"));
-            }
-
-            // Insensitive search for categories
-            if (categories != null && !categories.isEmpty()) {
-                Join<Serie, Genre> categoryJoin = root.join("genreID");
-                predicates.add(criteriaBuilder.lower(categoryJoin.get("name")).in(categories.stream().map(String::toLowerCase).toList()));
-            }
-
-            // Insensitive search for genres
-            if (genres != null && !genres.isEmpty()) {
-                Join<Serie, Genre> genreJoin = root.join("genreID");
-                predicates.add(genreJoin.get("name").in(genres.stream().map(String::toLowerCase).toList()));
-            }
-
-            if (releaseDateFrom != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("releaseDate"), releaseDateFrom));
-            }
-
-            if (releaseDateTo != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("releaseDate"), releaseDateTo));
-            }
-
-            if (ratingFrom != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("rating"), ratingFrom));
-            }
-
-            if (ratingTo != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("rating"), ratingTo));
-            }
-
-            if (popularityFrom != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("popularity"), popularityFrom));
-            }
-
-            if (popularityTo != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("popularity"), popularityTo));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
-
-        if (sortBy != null && !sortBy.isEmpty()) {
-            Sort sort = Sort.by(Sort.Direction.fromString(sortOrder != null ? sortOrder : "ASC"), sortBy);
-            pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
-        }
-
-        return serieRepository.findAll(specification, pageable);
+        return serieRepository.searchSeries(title, genres, releaseDateFrom, releaseDateTo, ratingFrom, ratingTo, popularityFrom, popularityTo, pageable);
     }
 
 

@@ -1,6 +1,6 @@
 // src/services/authService.js
 
-const API_URL = "http://localhost:8081/auth"; // URL de tu backend
+const API_URL = `${import.meta.env.VITE_BACKEND_URL}/auth`;
 
 // Función para registrar al usuario
 export const register = async (username, email, password) => {
@@ -26,7 +26,6 @@ export const register = async (username, email, password) => {
   }
 };
 
-// Función para iniciar sesión
 // Función para iniciar sesión
 export const login = async (username, password) => {
   try {
@@ -64,25 +63,44 @@ export const fetchUserData = async () => {
 
   if (token) {
     try {
+      if (isTokenExpired(token)) {
+        console.error("Token ha expirado");
+        return null; // O puedes redirigir al usuario a la página de inicio de sesión.
+      }
+
       const response = await fetch(`${API_URL}/user`, {
-        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
       if (!response.ok) {
-        console.log(response);
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+        throw new Error("Token inválido o expirado.");
       }
 
       const userData = await response.json();
-      return userData; // Retorna los datos del usuario
+      return userData; // Retorna los datos del usuario si son válidos
     } catch (error) {
-       
+      console.error("Error al obtener los datos del usuario:", error.message);
       return { error: error.message };
     }
   } else {
     return null; // Retorna null si no hay token
   }
 };
+
+const isTokenExpired = (token) => {
+  const [, payload] = token.split(".");
+  const decodedPayload = JSON.parse(atob(payload));
+  const expiryDate = decodedPayload.exp * 1000; // Convertir a milisegundos
+  return Date.now() > expiryDate;
+};
+
+const token = localStorage.getItem("token");
+if (isTokenExpired(token)) {
+  console.error("Token ha expirado");
+  // Redirige al usuario para que vuelva a iniciar sesión o actualiza el token si es posible.
+} else {
+  fetchUserData();
+}

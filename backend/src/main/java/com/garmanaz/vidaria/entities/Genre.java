@@ -26,6 +26,10 @@ public class Genre {
     @ManyToMany(mappedBy = "genres")
     private List<Movie> movies = new ArrayList<>();
 
+    @JsonBackReference
+    @ManyToMany(mappedBy = "genreID")
+    private List<Serie> series = new ArrayList<>();
+
     public Genre(long id, String name) {
         this.id = id;
         this.name = name;

@@ -54,6 +54,7 @@ public class MovieController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @GetMapping("/search")
     public ResponseEntity<Page<Movie>> searchMovies(
             @RequestParam(required = false, value = "title") String title,
@@ -79,47 +80,38 @@ public class MovieController {
     }
 
     @GetMapping("/featured")
-    public ResponseEntity<List<Movie>> getFeaturedMovies() {
+    public ResponseEntity<List<Movie>> getFeaturedMovies(@RequestParam(required = false, defaultValue = "") List<String> movieNames) {
         // Usa un Set para asegurar que no haya géneros duplicados
         Set<String> uniqueGenres = new HashSet<>(Arrays.asList(
-                "action",
-                "adventure",
-                "animation",
-                "horror",
-                "mystery",
-                "romance",
-                "comedy",
-                "crime",
-                "documentary",
-                "drama",
-                "family",
-                "fantasy",
-                "history",
-                "science fiction",
-                "tv movie",
-                "thriller",
-                "war",
-                "western"
+                "action", "adventure", "animation", "horror", "mystery", "romance",
+                "comedy", "crime", "documentary", "drama", "family", "fantasy",
+                "history", "science fiction", "tv movie", "thriller", "war", "western"
         ));
 
-        // Lista para las películas destacadas
         List<Movie> featuredMovies = new ArrayList<>();
-        // Para realizar un seguimiento de los IDs de las películas agregadas
-        Set<Long> addedMovieIds = new HashSet<>();
+        Set<Long> addedMovieIds = new HashSet<>(); // Para evitar duplicados
 
         for (String genre : uniqueGenres) {
             try {
-                // Obtiene las mejores películas por género
-                Page<Movie> bestMoviesByGenres = movieService.getBestMoviesByGenres(genre);
+                // Obtener las mejores películas por género
+                Pageable page = Pageable.ofSize(20);
+                Page<Movie> bestMoviesByGenres = movieService.getBestMoviesByGenres(genre, page);
 
-                // Verifica si hay películas en la lista
-                if (!bestMoviesByGenres.isEmpty()) {
-                    // Solo toma la primera película y se asegura de que no haya sido agregada antes
-                    Movie firstMovie = bestMoviesByGenres.getContent().get(0);
-                    if (!addedMovieIds.contains(firstMovie.getId())) {
-                        featuredMovies.add(firstMovie); // Agregar la película
-                        addedMovieIds.add(firstMovie.getId()); // Marcar la película como agregada
-                    }
+                // Filtra las películas por el nombre que recibiste
+                assert movieNames != null;
+                Movie selectedMovie = bestMoviesByGenres.getContent().stream()
+                        .filter(movie -> movieNames.contains(movie.getTitle()) && !addedMovieIds.contains(movie.getId()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (selectedMovie != null) {
+                    featuredMovies.add(selectedMovie); // Agrega la película
+                    addedMovieIds.add(selectedMovie.getId()); // Marca como agregada
+                }
+
+                // Solo agrega hasta 6 películas
+                if (featuredMovies.size() >= 6) {
+                    break;
                 }
             } catch (Exception e) {
                 throw new RuntimeException("Error fetching featured movies: " + GlobalExceptionHandler.handleException(e).getBody());
@@ -130,17 +122,15 @@ public class MovieController {
     }
 
 
-
-
-
-
     // GET BEST MOVIES BY GENRES
     @GetMapping("/best/{genre}")
-    public ResponseEntity<Page<Movie>> getBestMoviesByGenres(@PathVariable String genre) {
+    public ResponseEntity<Page<Movie>> getBestMoviesByGenres(
+            @PathVariable String genre,
+            @PageableDefault(size = 20) Pageable pageable) {
         try {
-            return ResponseEntity.ok(movieService.getBestMoviesByGenres(genre));
+            return ResponseEntity.ok(movieService.getBestMoviesByGenres(genre, pageable));
         } catch (Exception e) {
-            throw new RuntimeException("Error fetching best movies: " + GlobalExceptionHandler.handleException(e).getBody());
+            throw new RuntimeException("Error fetching best movies by genre: " + GlobalExceptionHandler.handleException(e).getBody());
         }
     }
 

@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8081/series";
+const API_URL = `${import.meta.env.VITE_BACKEND_URL}/series`;
 
 export const getSeries = async () => {
   try {
@@ -24,10 +24,18 @@ export const searchSeries = async (filters = {}) => {
   const params = new URLSearchParams(filters).toString();
   try {
     const response = await fetch(`${API_URL}/search?${params}`);
-    return checkResponse(response);
+    const data = await checkResponse(response);
+
+    // Asegúrate de que `content` esté en el formato esperado
+    if (data && Array.isArray(data.content)) {
+      return data;
+    } else {
+      console.warn("La estructura de datos no es la esperada:", data);
+      return { content: [] };
+    }
   } catch (error) {
     console.error(`Failed to search series with filters ${params}:`, error);
-    return [];
+    return { content: [] };
   }
 };
 
@@ -41,57 +49,83 @@ export const getSeriesByGenre = async (genre) => {
   }
 };
 
-export const getFeaturedSeries = async ({ totalPages = 20, size = 80 }) => {
+export const getFeaturedSeries = async ({ totalPages = 20, size = 20 }) => {
   const featuredTitles = [
-    "Family Guy",
-    "Peaky Blinders",
-    "Cheers",
-    "Doctor Who",
-    "Panorama",
+    "Seinfeld",
+    "The Rookie",
+    "The Lord of the Rings: The Rings of Power",
+    "FROM",
     "The Sopranos",
+    "Rick and Morty",
   ];
 
-  let featuredSeries = [];
+  let featuredSeries = []; // Aquí almacenamos las series encontradas
+  let foundTitles = new Set(); // Para almacenar los títulos encontrados
 
-  for (let page = 1; page <= totalPages; page++) {
+  // Iteramos sobre cada página de la API hasta que se encuentren todas las series o se agoten las páginas
+  for (let page = 0; page < totalPages; page++) {
     try {
+      // Petición a la API con el número de página y el tamaño de la página
       const response = await fetch(
         `${API_URL}/most-popular?page=${page}&size=${size}`
       );
-
       const data = await checkResponse(response);
 
+      // Si la respuesta no tiene contenido o está vacía, terminamos el bucle
       if (!data.content || data.content.length === 0) {
-        console.warn("No series found in the response content.");
-        break; // Salir del bucle si no hay más series
+        console.warn(`No series found on page ${page}.`);
+        break;
       }
 
-      // Buscar series específicas en la página actual y obtener por lo menos 5 series
+      // Recorremos las series devueltas por la API en esta página
       for (const serie of data.content) {
-        if (featuredTitles.includes(serie.title)) {
-          if (!featuredSeries.find((s) => s.genre_id === serie.genre_id)) {
-            featuredSeries.push(serie);
-          } else {
-            console.warn(
-              `Serie ${serie.title} already added to featured series.`
-            );
-          }
+        if (
+          featuredTitles.includes(serie.title) &&
+          !foundTitles.has(serie.title)
+        ) {
+          featuredSeries.push(serie); // Añadimos la serie encontrada
+          foundTitles.add(serie.title); // Marcamos el título como encontrado
         }
       }
 
-      if (featuredSeries.length >= featuredTitles.length) {
-        break; // Salir del bucle si ya se encontraron todas las series
+      // Si ya hemos encontrado todas las series, terminamos la búsqueda
+      if (foundTitles.size >= featuredTitles.length) {
+        break;
+      }
+
+      // Si hemos llegado a la última página, salimos del bucle
+      if (data.last) {
+        break;
       }
     } catch (error) {
-      console.error("Failed to fetch featured series:", error);
-      break; // Salir del bucle en caso de error
+      console.error("Error al obtener las series destacadas:", error);
+      break; // Salimos del bucle si hay algún error
     }
   }
 
-  return featuredSeries; // Devolver las series encontradas
+  // Devolvemos las series encontradas
+  return featuredSeries;
 };
 
-const checkResponse = (response) => {
-  if (!response.ok) throw new Error(`Error fetching data: ${response.status}`);
+export const fetchCast = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/${id}/cast`);
+    return checkResponse(response);
+  } catch (error) {
+    console.error(`Error fetching cast for serie with id ${id}:`, error);
+    return [];
+  }
+};
+
+// Función para verificar la respuesta de la API
+export const checkResponse = async (response) => {
+  if (!response.ok) {
+    const errorDetails = await response.json();
+    throw new Error(
+      `Error al obtener los datos: ${response.status} - ${
+        errorDetails.message || "Unknown error"
+      }`
+    );
+  }
   return response.json();
 };

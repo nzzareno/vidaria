@@ -1,13 +1,26 @@
-import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useEffect, useState, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setError } from "../redux/movieSlice";
-import { useNavigate } from "react-router-dom";
 import Slider from "react-slick";
 import { getMoviesByCategory } from "../services/movieService";
 import { RingLoader } from "react-spinners";
-import { AnimatePresence, motion } from "framer-motion";
-import { FaArrowLeft, FaArrowRight, FaBars } from "react-icons/fa";
-import { GrLogout } from "react-icons/gr";
+import { motion } from "framer-motion";
+import Header from "../components/Header";
+import { NextArrow, PrevArrow } from "../utils/sliderUtils";
+import {
+  adjustImageQuality,
+  createSliderSettings,
+} from "../utils/sliderSettings.jsx";
+import RealNavbar from "../components/RealNavbar.jsx";
+import { searchSeries } from "../services/serieService.js";
+import {
+  setAnimationSeries,
+  setFamilySeries,
+  setLoadingSerie,
+  setPopularSeries,
+  setTopRatedSeries,
+} from "../redux/serieSlice.js";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   const [popularMovies, setPopularMovies] = useState([]);
@@ -16,9 +29,6 @@ const Home = () => {
   const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [headerMovies, setHeaderMovies] = useState([]);
-  const [loading, setLoadingState] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [currentHeaderMovieIndex, setCurrentHeaderMovieIndex] = useState(0);
   const [currentSlide, setCurrentSlide] = useState({
     popular: 0,
     upcoming: 0,
@@ -33,366 +43,282 @@ const Home = () => {
     nowPlaying: false,
     topRated: false,
   });
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const isOnMobile = window.innerWidth <= 768;
-  const slidesToShow = 8;
+  const [windowSize, setWindowSize] = useState(window.innerWidth);
 
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const {
+    topRatedSeries,
+    popularSeries,
+    animationSeries,
+    familySeries,
+    loadingSerie,
+  } = useSelector((state) => state.series);
+  const { loading } = useSelector((state) => state.movies);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setWindowSize(window.innerWidth);
+      setCurrentSlide({
+        popular: 0,
+        upcoming: 0,
+        trending: 0,
+        nowPlaying: 0,
+        topRated: 0,
+      });
+      setIsNextDisabled({
+        popular: false,
+        upcoming: false,
+        trending: false,
+        nowPlaying: false,
+        topRated: false,
+      });
     };
 
     window.addEventListener("resize", handleResize);
-
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentHeaderMovieIndex(
-        (prevIndex) => (prevIndex + 1) % headerMovies.length
-      );
-    }, 5000);
+  const handleBeforeChange = useCallback(
+    (category, current, next) => {
+      const slidesToShow = getSlidesToShow(windowSize);
+      setCurrentSlide((prev) => ({ ...prev, [category]: next }));
 
-    return () => clearInterval(interval);
-  }, [headerMovies]);
-
-  useEffect(() => {
-    const fetchMoviesByCategory = async (category, setMovies, pages = 1) => {
-      dispatch(setLoading());
-      try {
-        const movies = [];
-        for (let page = 0; page <= pages; page++) {
-          const response = await getMoviesByCategory(category, {
-            page,
-            size: 20,
-          });
-          movies.push(...response);
-        }
-        setMovies(movies);
-        setLoadingState(false);
-      } catch (error) {
-        console.error(`Error fetching ${category} movies:`, error);
-        dispatch(setError(error));
-        setLoadingState(false);
-      }
-    };
-
-    fetchMoviesByCategory("popular", setPopularMovies, 4);
-    fetchMoviesByCategory("top_rated", setTopRatedMovies, 4);
-    fetchMoviesByCategory("upcoming", setUpcomingMovies, 4);
-    fetchMoviesByCategory("now_playing", setNowPlayingMovies, 4);
-    fetchMoviesByCategory("trending", setTrendingMovies, 4);
-    fetchMoviesByCategory("top_rated", setHeaderMovies, 4);
-  }, [dispatch]);
-
-  const handleBeforeChange = (category, current, next) => {
-    setCurrentSlide((prev) => ({ ...prev, [category]: next }));
-    const totalSlides = Math.ceil(
-      {
+      const categoryItems = {
         popular: popularMovies,
         upcoming: upcomingMovies,
         trending: trendingMovies,
         nowPlaying: nowPlayingMovies,
         topRated: topRatedMovies,
-      }[category].length / slidesToShow
-    );
-    const isAtEnd = next >= totalSlides - 1;
-    setIsNextDisabled((prev) => ({ ...prev, [category]: isAtEnd }));
-  };
+        popularSeries: popularSeries,
+        animationSeries: animationSeries,
+        familySeries: familySeries,
+        topRatedSeries: topRatedSeries,
+      }[category];
 
-  const currentHeaderMovie = headerMovies[currentHeaderMovieIndex] || {};
+      const totalItems = categoryItems.length;
+      const isAtEnd = next + slidesToShow >= totalItems;
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    dispatch({ type: "auth/logout" });
-    navigate("/");
-  };
-
-  const adjustImageQuality = (url, quality = "original") => {
-    return url ? url.replace(/\/w\d+/, `/${quality}`) : "";
-  };
-
-  const PrevArrow = ({ onClick }) => (
-    <div
-      className="custom-prev-arrow"
-      style={{
-        position: "absolute",
-        top: "50%",
-        transform: "translateY(-50%)",
-        left: "10px",
-        zIndex: 2,
-        background: "rgba(255, 255, 255, 0.8)",
-        borderRadius: "50%",
-        width: "40px",
-        height: "40px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-      }}
-      onClick={onClick}
-    >
-      <FaArrowLeft size={20} color="black" />
-    </div>
+      setIsNextDisabled((prev) => ({ ...prev, [category]: isAtEnd }));
+    },
+    [
+      popularMovies,
+      upcomingMovies,
+      trendingMovies,
+      nowPlayingMovies,
+      topRatedMovies,
+      popularSeries,
+      animationSeries,
+      familySeries,
+      topRatedSeries,
+      windowSize,
+    ]
   );
 
-  const NextArrow = ({ onClick, isDisabled }) => (
-    <div
-      className={`custom-next-arrow ${
-        isDisabled ? "opacity-50 cursor-not-allowed" : ""
-      }`}
-      style={{
-        position: "absolute",
-        top: "50%",
-        transform: "translateY(-50%)",
-        right: "10px",
-        zIndex: 2,
-        background: "rgba(255, 255, 255, 0.8)",
-        borderRadius: "50%",
-        width: "40px",
-        height: "40px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: isDisabled ? "not-allowed" : "pointer",
-      }}
-      onClick={!isDisabled ? onClick : undefined}
-    >
-      <FaArrowRight size={20} color="black" />
-    </div>
+  const fetchMoviesByCategory = useCallback(
+    async (category, setMovies, pages = 1) => {
+      try {
+        const movies = [];
+        for (let page = 1; page <= pages; page++) {
+          const response = await getMoviesByCategory(category, {
+            page,
+            size: 10,
+          });
+          movies.push(...response);
+        }
+        setMovies(movies);
+        return movies;
+      } catch (error) {
+        dispatch(setError(error.message));
+      }
+    },
+    [dispatch]
   );
 
-  const createSliderSettings = (category) => ({
-    dots: false,
-    infinite: false,
-    speed: 500,
-    autoplay: false,
-    arrows: true,
-    prevArrow: currentSlide[category] > 0 ? <PrevArrow /> : null,
-    nextArrow: <NextArrow isDisabled={isNextDisabled[category]} />,
-    draggable: false,
-    beforeChange: (current, next) =>
-      handleBeforeChange(category, current, next),
-    slidesToShow,
-    slidesToScroll: 2,
-    responsive: [
-      {
-        breakpoint: 1200,
-        settings: {
-          slidesToShow: 6,
-          slidesToScroll: 6,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 4,
-          slidesToScroll: 2,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 2,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 2,
-        },
-      },
-    ],
-  });
+  useEffect(() => {
+    const loadAllContent = async () => {
+      dispatch(setLoading(true));
+      dispatch(setLoadingSerie(true));
 
+      try {
+        // Fetch movies
+        const [popular, topRated, upcoming, nowPlaying, trending] = await Promise.all([
+          fetchMoviesByCategory("popular", setPopularMovies, 2),
+          fetchMoviesByCategory("top_rated", setTopRatedMovies, 2),
+          fetchMoviesByCategory("upcoming", setUpcomingMovies, 2),
+          fetchMoviesByCategory("now_playing", setNowPlayingMovies, 2),
+          fetchMoviesByCategory("trending", setTrendingMovies, 2),
+        ]);
 
-  const formatCategoryTitle = (category) => {
-    return category
-      .replace(/([A-Z])/g, " $1") // Inserta un espacio antes de cada letra mayúscula
-      .replace(/^./, (str) => str.toUpperCase()); // Capitaliza la primera letra
+        const allMovies = [...popular, ...topRated, ...upcoming, ...nowPlaying, ...trending];
+        const highPopularityMovies = allMovies.filter((movie) => movie.popularity && movie.popularity > 50);
+        const shuffledMovies = highPopularityMovies.sort(() => 0.5 - Math.random());
+        setHeaderMovies(shuffledMovies.slice(0, 10));
+
+        // Fetch series
+        await Promise.all([
+          dispatch(setPopularSeries(await searchSeries("popular", 2))),
+          dispatch(setTopRatedSeries(await searchSeries("top_rated", 2))),
+          dispatch(setAnimationSeries(await searchSeries("animation", 2))),
+          dispatch(setFamilySeries(await searchSeries("family", 2))),
+        ]);
+      } catch (error) {
+        console.error("Error loading content:", error);
+      } finally {
+        dispatch(setLoading(false));
+        dispatch(setLoadingSerie(false));
+      }
+    };
+
+    loadAllContent();
+  }, [fetchMoviesByCategory, dispatch]);
+
+  const getSlidesToShow = (width) => {
+    if (width >= 1440) return 8;
+    if (width >= 1200) return 5;
+    if (width >= 1100) return 4;
+    if (width >= 768) return 2;
+    return 1;
   };
 
-  return (
-    <div className="min-h-screen overflow-x-hidden transition-colors text-white bg-[#0A0A1A] ">
-      <nav className="fixed top-0 left-0 w-full z-50 shadow-md transition-colors duration-200 bg-[#0A0A1A]">
-        <div className="flex items-center justify-between py-4 px-4">
-          {/* Título a la izquierda */}
-          <h1 className="text-3xl font-bold text-white">vidaria</h1>
+  useEffect(() => {
+    const fetchSeries = async () => {
+      dispatch(setLoadingSerie(true));
+      try {
+        const fetchSeriesByPages = async (params, totalPages) => {
+          const resultArray = [];
+          for (let page = 1; page <= totalPages; page++) {
+            const response = await searchSeries({ ...params, page, size: 10 });
+            if (response?.content?.length) {
+              resultArray.push(...response.content);
+            }
+          }
+          return resultArray;
+        };
+  
+        const totalPages = 3;
+        const addedSeriesIds = new Set(); // Set to track unique series IDs
+  
+        // Fetch and filter series for each category
+        const popularSeriesArray = (await fetchSeriesByPages({ genres: "drama" }, totalPages)).filter(
+          (serie) => {
+            const isUnique = !addedSeriesIds.has(serie.id);
+            if (isUnique) addedSeriesIds.add(serie.id);
+            return isUnique;
+          }
+        );
+  
+        const topRatedSeriesArray = (await fetchSeriesByPages({ ratingFrom: 7 }, totalPages)).filter(
+          (serie) => {
+            const isUnique = !addedSeriesIds.has(serie.id);
+            if (isUnique) addedSeriesIds.add(serie.id);
+            return isUnique;
+          }
+        );
+  
+        const animationSeriesArray = (await fetchSeriesByPages({ genres: "animation" }, totalPages)).filter(
+          (serie) => {
+            const isUnique = !addedSeriesIds.has(serie.id);
+            if (isUnique) addedSeriesIds.add(serie.id);
+            return isUnique;
+          }
+        );
+  
+        const familySeriesArray = (await fetchSeriesByPages({ genres: "family" }, totalPages)).filter(
+          (serie) => {
+            const isUnique = !addedSeriesIds.has(serie.id);
+            if (isUnique) addedSeriesIds.add(serie.id);
+            return isUnique;
+          }
+        );
+  
+        // Dispatch filtered series arrays to Redux
+        dispatch(setPopularSeries(popularSeriesArray));
+        dispatch(setTopRatedSeries(topRatedSeriesArray));
+        dispatch(setAnimationSeries(animationSeriesArray));
+        dispatch(setFamilySeries(familySeriesArray));
+      } catch (error) {
+        console.error("Error al obtener series:", error);
+      } finally {
+        dispatch(setLoadingSerie(false)); // Asegura que loadingSerie se desactive al final
+      }
+    };
+  
+    fetchSeries();
+  }, [dispatch]);
+  
 
-          {/* Opciones de navegación centradas */}
-          <div className="hidden md:flex flex-1 justify-center space-x-6">
-            <a href="/" className=" hover:text-gray-400">
-              Home
-            </a>
-            <a href="/movies" className="hover:text-gray-400">
-              Movies
-            </a>
-            <a href="/about" className="hover:text-gray-400">
-              TV Shows
-            </a>
-          </div>
-
-          {!isMobile && (
-            <div className="flex space-x-4">
-              <a
-                onClick={handleLogout}
-                className="cursor-pointer hover:text-gray-400"
-              >
-                <GrLogout size={24} />
-              </a>
-            </div>
-          )}
-
-          {/* Botón de menú para móviles */}
-          <button
-            className="md:hidden focus:outline-none"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <FaBars size={24} />
-          </button>
-        </div>
-
-        {/* Menú desplegable para móviles */}
-        {isMenuOpen && (
-          <div className="md:hidden flex flex-col space-y-2 px-4 pb-4 bg-[#0A0A1A]">
-            <a href="/" className="hover:text-gray-400">
-              Home
-            </a>
-            <a href="/movies" className="hover:text-gray-400">
-              Movies
-            </a>
-            <a href="/about" className="hover:text-gray-400">
-              TV Shows
-            </a>
-
-            {/* Botones separados en la parte inferior derecha */}
-            <div className=" flex flex-col items-end mt-4 space-y-2">
-              {" "}
-              <a
-                onClick={handleLogout}
-                className="cursor-pointer hover:text-gray-400"
-              >
-                <GrLogout size={24} />
-              </a>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      <motion.header
-        className="relative h-[70vh] md:h-[80vh] w-full mt-16 overflow-hidden"
+  const renderSliderSection = useCallback(
+    (title, categoryItems, categoryKey) => (
+      <motion.section
+        key={categoryKey}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }} // Ajusta la duración de la animación según tus preferencias
+        transition={{ duration: 0.2 }}
+        className="space-y-10 mt-10 px-2 md:px-4 lg:px-8"
       >
-        <AnimatePresence>
-          {currentHeaderMovie && (
-            <>
-              <motion.img
-                key={currentHeaderMovie.background}
-                src={adjustImageQuality(currentHeaderMovie.background)}
-                alt={currentHeaderMovie.title}
-                className="absolute inset-0 w-full h-full  md:object-fill xl:object-cover object-fill md:object-top lg:object-top"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1 }} // Ajusta la duración para que la transición sea más suave
-              />
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#0A0A1A] via-black/60 to-transparent"></div>
+        {categoryItems.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-white">{title}</h2>
+            <Slider
+              {...createSliderSettings(
+                categoryKey,
+                currentSlide,
+                setIsNextDisabled,
+                getSlidesToShow(windowSize),
+                isNextDisabled,
+                PrevArrow,
+                NextArrow,
+                handleBeforeChange
+              )}
+              className="overflow-hidden"
+              key={windowSize}
+            >
+              {categoryItems.map((item) => (
+                <Link to={`/${categoryKey.includes("Series") ? "series" : "movies"}/${item.id}`} key={item.id}>
+                  <motion.div className="px-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+                    <motion.div className="relative bg-[#0A0A1A] cursor-pointer transition-colors rounded-lg">
+                      <motion.img
+                        src={adjustImageQuality(item.cover || item.poster, "w300")}
+                        alt={item.title}
+                        whileHover={{ opacity: 0.7 }}
+                        className="w-full h-[19rem] object-cover"
+                      />
+                    </motion.div>
+                  </motion.div>
+                </Link>
+              ))}
+            </Slider>
+          </div>
+        )}
+      </motion.section>
+    ),
+    [currentSlide, isNextDisabled, handleBeforeChange, windowSize]
+  );
 
-              <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#0A0A1A] to-transparent"></div>
-              <div className="absolute bottom-8 left-0 z-10 max-w-lg md:max-w-xl lg:max-w-2xl p-2 text-left">
-                <h1 className="text-3xl text-white sm:text-4xl md:text-5xl lg:text-6xl font-bold">
-                  {currentHeaderMovie.title}
-                </h1>
-                <p className="mt-4 text-sm sm:text-base text-white md:text-lg lg:text-xl leading-relaxed line-clamp-4">
-                  {currentHeaderMovie.description}
-                </p>
-                <div className="mt-6 space-x-4">
-                  <button className="bg-red-600 text-white px-6 py-3 rounded-lg shadow hover:bg-red-500 transition-all">
-                    Play
-                  </button>
-                  <button className="bg-gray-800 text-white px-6 py-3 rounded-lg shadow hover:bg-gray-700 transition-all">
-                    More Info
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </AnimatePresence>
-      </motion.header>
-
-      {loading ? (
-        <div className="flex justify-center items-center min-h-screen bg-white">
+  return (
+    <>
+      {loading || loadingSerie ? (
+        <div className="flex justify-center items-center min-h-screen bg-[#0A0A1A]">
           <RingLoader color="#FF0000" size={200} />
         </div>
       ) : (
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          className="space-y-10 mt-10 px-2 md:px-4 lg:px-8"
-        >
-          {["upcoming", "popular", "trending", "nowPlaying", "topRated"].map(
-            (category) =>
-              ({
-                upcoming: upcomingMovies,
-                popular: popularMovies,
-                trending: trendingMovies,
-                nowPlaying: nowPlayingMovies,
-                topRated: topRatedMovies,
-              }[category].length > 0 && (
-                <div className="space-y-6" key={category}>
-                  <h2 className="text-3xl font-bold  text-white  ">
-                    {`${
-                      formatCategoryTitle(category) 
-                    } Movies`}
-                  </h2>
-                  <Slider
-                    {...createSliderSettings(category)}
-                    className="overflow-hidden"
-                  >
-                    {{
-                      upcoming: upcomingMovies,
-                      popular: popularMovies,
-                      trending: trendingMovies,
-                      nowPlaying: nowPlayingMovies,
-                      topRated: topRatedMovies,
-                    }[category].map((movie) => (
-                      <motion.div
-                        key={movie.id}
-                        className="px-2"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <motion.div className="relative   bg-[#0A0A1A] cursor-pointer transition-colors rounded-lg">
-                          <motion.img
-                            src={movie.cover}
-                            alt={movie.title}
-                            className="w-full h-[19rem] object-cover"
-                            whileHover={{
-                              opacity: 0.7,
-                            }}
-                          />
-                        </motion.div>
-                      </motion.div>
-                    ))}
-                  </Slider>
-                </div>
-              ))
-          )}
-        </motion.section>
+        <div className="min-h-screen overflow-x-hidden transition-colors text-white bg-[#0A0A1A] ">
+          <RealNavbar />
+          <Header headerMovies={headerMovies} />
+          {/* Movies Sections */}
+          {renderSliderSection("Popular Movies", popularMovies, "popular")}
+          {renderSliderSection("Top Rated Movies", topRatedMovies, "topRated")}
+          {renderSliderSection("Upcoming Movies", upcomingMovies, "upcoming")}
+          {renderSliderSection("Now Playing Movies", nowPlayingMovies, "nowPlaying")}
+          {renderSliderSection("Trending Movies", trendingMovies, "trending")}
+          {/* Series Sections */}
+          {renderSliderSection("Animation Series", animationSeries, "animationSeries")}
+          {renderSliderSection("Family Series", familySeries, "familySeries")}
+          {renderSliderSection("Popular Series", popularSeries, "popularSeries")}
+          {renderSliderSection("Top Rated Series", topRatedSeries, "topRatedSeries")}
+        </div>
       )}
-    </div>
+    </>
   );
 };
 

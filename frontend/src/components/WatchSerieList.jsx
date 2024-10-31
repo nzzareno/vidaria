@@ -36,7 +36,7 @@ const WatchSerieList = ({ series }) => {
           className="flex flex-wrap justify-center"
         >
           {Array.isArray(mySeries) && mySeries.length > 0 ? (
-            mySeries.map((serie) => (
+            mySeries?.map((serie) => (
               <WatchedSerie key={serie.id} serie={serie} />
             ))
           ) : (

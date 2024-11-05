@@ -7,6 +7,13 @@ const serieSlice = createSlice({
     topRatedSeries: [],
     popularSeries: [],
     animationSeries: [],
+    crimeSeries: [],
+    comedySeries: [],
+    dramaSeries: [],
+    actionAndAventureSeries: [],
+    documentalSeries: [],
+    westernSeries: [],
+    mysterySeries: [],
     familySeries: [],
     selectedSerie: null,
     loadingSerie: false,
@@ -14,10 +21,16 @@ const serieSlice = createSlice({
     currentPage: 1,
     filters: {},
     featuredSeries: [],
+    topSeries: [],
   },
   reducers: {
     setTopRatedSeries: (state, action) => {
       state.topRatedSeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+    setTopSeries: (state, action) => {
+      state.topSeries = action.payload;
       state.loadingSerie = false;
       state.error = null;
     },
@@ -28,6 +41,48 @@ const serieSlice = createSlice({
     },
     setAnimationSeries: (state, action) => {
       state.animationSeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+
+    setCrimeSeries: (state, action) => {
+      state.crimeSeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+
+    setComedySeries: (state, action) => {
+      state.comedySeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+
+    setDramaSeries: (state, action) => {
+      state.dramaSeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+
+    setActionAndAventureSeries: (state, action) => {
+      state.actionAndAventureSeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+
+    setDocumentalSeries: (state, action) => {
+      state.documentalSeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+
+    setWesternSeries: (state, action) => {
+      state.westernSeries = action.payload;
+      state.loadingSerie = false;
+      state.error = null;
+    },
+
+    setMysterySeries: (state, action) => {
+      state.mysterySeries = action.payload;
       state.loadingSerie = false;
       state.error = null;
     },
@@ -76,6 +131,14 @@ export const {
   setFilters,
   clearError,
   setFeaturedSeries,
+  setTopSeries,
   setAnimationSeries,
   setFamilySeries,
+  setCrimeSeries,
+  setComedySeries,
+  setDramaSeries,
+  setActionAndAventureSeries,
+  setDocumentalSeries,
+  setWesternSeries,
+  setMysterySeries,
 } = serieSlice.actions;

@@ -91,14 +91,19 @@ export const fetchUserData = async () => {
 };
 
 const isTokenExpired = (token) => {
+  if (!token) {
+    return true; // Si no hay token, asumimos que está expirado o no es válido
+  }
+
   const [, payload] = token.split(".");
   const decodedPayload = JSON.parse(atob(payload));
   const expiryDate = decodedPayload.exp * 1000; // Convertir a milisegundos
   return Date.now() > expiryDate;
 };
 
+// Verificación del token
 const token = localStorage.getItem("token");
-if (isTokenExpired(token)) {
+if (token && isTokenExpired(token)) {
   console.error("Token ha expirado");
   // Redirige al usuario para que vuelva a iniciar sesión o actualiza el token si es posible.
 } else {

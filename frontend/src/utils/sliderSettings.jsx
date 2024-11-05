@@ -8,7 +8,7 @@ export const createSliderSettings = (
   isNextDisabled,
   PrevArrow,
   NextArrow,
-  handleBeforeChange
+  handleBeforeChange = () => {}
 ) => ({
   dots: false,
   infinite: false,

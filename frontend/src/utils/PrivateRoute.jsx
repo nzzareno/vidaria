@@ -1,10 +1,22 @@
 import { Navigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+
+
+// Función para verificar si el token ha expirado
+function isTokenExpired(token) {
+  if (!token) return true;
+  const [, payload] = token.split(".");
+  const decodedPayload = JSON.parse(atob(payload));
+  const expiryDate = decodedPayload.exp * 1000; // Convertir a milisegundos
+  return Date.now() > expiryDate;
+}
 
 const PrivateRoute = ({ children }) => {
-  const user = useSelector((state) => state.auth.user);
+  const token = localStorage.getItem("token");
 
-  return user ? children : <Navigate to="/" />;
+  // Verifica si el token es válido
+  const isAuthenticated = token && !isTokenExpired(token);
+
+  return isAuthenticated ? children : <Navigate to="/" replace />;
 };
 
 export default PrivateRoute;

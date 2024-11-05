@@ -187,48 +187,49 @@ const Navbar = () => {
     }
   };
 
+  // Navbar.jsx
+
   const renderModalContent = () => {
     const modalContent = {
       login: (
         <motion.div
           key="login"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="relative"
+          className="relative font-montserrat"
         >
           <form className="mt-4" onSubmit={handleLogin}>
             <div className="mb-4">
               <input
                 type="text"
                 placeholder="Username"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg font-montserrat text-black"
                 name="username"
                 required
                 value={formData.username}
                 onChange={handleInputChange}
-                ref={usernameInputRef} // Foco en este input
+                ref={usernameInputRef}
               />
-              <p className="text-red-500 text-sm mt-1 h-4">
-                {formErrors.username}
-              </p>
+             
             </div>
             <div className="mb-6">
               <input
                 type="password"
                 placeholder="Password"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg text-black"
                 name="password"
                 required
                 value={formData.password}
                 onChange={handleInputChange}
               />
-              <p className="text-red-500 text-sm mt-1 h-4">
-                {formErrors.password}
+               <p className="text-red-500 text-sm mt-1 h-4">
+                {formErrors.username}
               </p>
             </div>
-            <button className="w-full bg-white hover:bg-gray-300 text-black p-2 rounded-lg transition duration-200 font-bold mt-2">
+
+            <button className="w-full bg-white hover:bg-gray-300 font-montserrat text-black p-2 rounded-lg transition duration-200 font-bold mt-2">
               Sign In
             </button>
             <p className="text-center mt-4">
@@ -242,33 +243,31 @@ const Navbar = () => {
       subscribe: (
         <motion.div
           key="subscribe"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="relative"
+          className="relative font-montserrat"
         >
           <form className="mt-4" onSubmit={handleRegister}>
             <div className="mb-4">
               <input
                 type="text"
                 placeholder="Username"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg text-black"
                 name="username"
                 required
                 value={formData.username}
                 onChange={handleInputChange}
-                ref={usernameInputRef} // Foco en este input
+                ref={usernameInputRef}
               />
-              <p className="text-red-500 text-sm mt-1 h-4">
-                {formErrors.username}
-              </p>
+        
             </div>
             <div className="mb-4">
               <input
                 type="email"
                 placeholder="Email"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg text-black"
                 name="email"
                 required
                 value={formData.email}
@@ -282,14 +281,15 @@ const Navbar = () => {
               <input
                 type="password"
                 placeholder="Password"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border rounded-lg text-black"
                 name="password"
                 required
                 value={formData.password}
                 onChange={handleInputChange}
               />
-              <p className="text-red-500 text-sm mt-1 h-4">
-                {formErrors.password}
+              
+              <p className="text-red-500 text-sm mt-1 h-4 ">
+                {formErrors.username}
               </p>
             </div>
             <button className="w-full bg-white text-black p-2 rounded-lg transition duration-200 hover:bg-green-600 mt-2">

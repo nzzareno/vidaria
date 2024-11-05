@@ -1,63 +1,134 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   fetchMovieDetails,
   fetchSerieDetails,
   fetchCast,
+  fetchCrew,
   fetchMovieAudio,
   fetchTagline,
+  fetchReviews,
+  fetchSimilar,
+  fetchMovieIfNotInDB,
 } from "../services/detailsService";
 import { RingLoader } from "react-spinners";
 import { adjustImageQuality } from "../utils/sliderSettings";
 import { useDispatch } from "react-redux";
 import { setMovieTagline } from "../redux/movieSlice";
 import RealNavbar from "../components/RealNavbar";
+import Slider from "react-slick";
+import { NextArrow, PrevArrow } from "../utils/sliderUtils";
+import { motion } from "framer-motion";
+import Modal from "../utils/Modal";
 
-const Details = ({ type }) => {
+const adultVerification = (adult) => (adult ? "18+" : "13+");
+const formatRating = (rating) => (rating ? rating.toFixed(1) : "N/A");
+
+const Details = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isSeries = location.pathname.includes("/series");
+  const internalType = isSeries ? "series" : "movies";
+  const externalType = isSeries ? "tv" : "movie";
+
   const [details, setDetails] = useState(null);
   const [cast, setCast] = useState([]);
+  const [director, setDirector] = useState(null);
   const [loading, setLoading] = useState(true);
   const [audioLanguages, setAudioLanguages] = useState([]);
+  const [tagline, setTagline] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [similarContent, setSimilarContent] = useState([]);
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState("");
+  const [selectedReview, setSelectedReview] = useState({});
+  const [expandedReviews, setExpandedReviews] = useState({});
+  const [showMoreOptions, setShowMoreOptions] = useState({});
 
   const dispatch = useDispatch();
 
-  const formatRating = (value) => (value ? value.toFixed(1) : "N/A");
-  const formatDate = (date) => new Date(date).getFullYear();
-  const adultVerification = (adult) => (adult ? "18+" : "13+");
-  const getLanguages = (languages) =>
-    languages.map((lang) => lang.english_name);
+  const reviewRefs = useRef([]); // Array of refs for each review
 
   useEffect(() => {
     const fetchDetails = async () => {
+      setLoading(true);
       try {
-        let data;
-        if (type === "movie") {
-          data = await fetchMovieDetails(id);
-        } else {
-          data = await fetchSerieDetails(id);
-        }
-        const castData = await fetchCast(id, type);
-        const audioData = await fetchMovieAudio(id, type);
-        const tagline = await fetchTagline(id, type);
-        setDetails({
-          ...data,
-          adult: adultVerification(data.adult),
-          numberOfSeasons: data.numberOfSeasons || "N/A",
-          numberOfEpisodes: data.numberOfEpisodes || "N/A",
-          releaseYear:
-            type === "movie"
-              ? formatDate(data.releaseDate)
-              : `${formatDate(data.release_date)} - ${
-                  data.last_air_date // cambiar!
-                    ? formatDate(data.last_air_date)
-                    : "Present"
-                }`,
-        });
+        let data = isSeries
+          ? await fetchSerieDetails(id)
+          : await fetchMovieDetails(id);
 
-        dispatch(setMovieTagline(tagline));
-        setAudioLanguages(getLanguages(audioData));
-        setCast(castData.slice(0, 6));
+        if (!data) {
+          data = await fetchMovieIfNotInDB(id, externalType);
+        }
+
+        if (isSeries && !data.last_air_date) {
+          const externalData = await fetchMovieIfNotInDB(id, externalType);
+          data.last_air_date =
+            externalData?.last_air_date || data.last_air_date;
+        }
+
+        if (data) {
+          const castData = await fetchCast(id, externalType);
+          const crewData = await fetchCrew(id, externalType);
+          const audioData = await fetchMovieAudio(id, externalType);
+          const taglineData = await fetchTagline(id, externalType);
+          const reviewsData = (await fetchReviews(id, externalType)).slice(
+            0,
+            3
+          );
+          const similarData = (await fetchSimilar(id, externalType)).filter(
+            (item) => item.poster_path
+          );
+
+          const executiveProducer = crewData
+            .filter((member) => member.job === "Executive Producer")
+            .reduce(
+              (mostPopular, current) =>
+                current.popularity > (mostPopular?.popularity || 0)
+                  ? current
+                  : mostPopular,
+              null
+            );
+
+          const directorData = crewData.find(
+            (member) => member.job === "Director"
+          );
+
+          setDirector(
+            directorData
+              ? directorData.name
+              : executiveProducer?.name || "Unknown"
+          );
+
+          setDetails({
+            ...data,
+            adult: data.adult ? "18+" : "13+",
+            releaseYear:
+              data.release_date ||
+              data.releaseDate ||
+              data.first_air_date ||
+              data.last_air_date
+                ? new Date(
+                    data.release_date ||
+                      data.first_air_date ||
+                      data.last_air_date ||
+                      data.releaseDate
+                  ).getFullYear()
+                : "Unknown",
+            numberOfSeasons: data.numberOfSeasons || (isSeries ? "N/A" : null),
+            numberOfEpisodes:
+              data.numberOfEpisodes || (isSeries ? "N/A" : null),
+          });
+
+          dispatch(setMovieTagline(taglineData));
+          setAudioLanguages(audioData.map((lang) => lang.english_name));
+          setTagline(taglineData);
+          setCast(castData.slice(0, 15));
+          setReviews(reviewsData);
+          setSimilarContent(similarData);
+        }
       } catch (error) {
         console.error("Error fetching details:", error);
       } finally {
@@ -66,7 +137,87 @@ const Details = ({ type }) => {
     };
 
     fetchDetails();
-  }, [id, type, dispatch]);
+  }, [id, isSeries, externalType, internalType, dispatch]);
+
+  useEffect(() => {
+    // After reviews are rendered, check if any of them exceed four lines
+    reviewRefs.current.forEach((ref, index) => {
+      if (ref && ref.scrollHeight > ref.clientHeight) {
+        setShowMoreOptions((prev) => ({ ...prev, [index]: true }));
+      }
+    });
+  }, [reviews]);
+
+  const toggleExpandReview = (index) => {
+    setExpandedReviews((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const openModal = (review) => {
+    setModalContent(formatReviewContent(review.content)); // Apply formatting here
+    setSelectedReview({
+      authorName: review.author,
+      avatar: review.avatar || "default-avatar.jpg",
+    });
+    setModalOpen(true);
+  };
+
+  const sliderSettings = {
+    dots: false,
+    infinite: false,
+    speed: 500,
+    autoplay: false,
+    arrows: true,
+    draggable: false,
+    slidesToShow: 4,
+    slidesToScroll: 4,
+    prevArrow: <PrevArrow />,
+    nextArrow: <NextArrow />,
+  };
+
+  const handleSimilarClick = (item) => {
+    const itemType = item.media_type || (item.title ? "movies" : "series");
+    navigate(`/${itemType}/${item.id}`, { state: { type: itemType } });
+  };
+
+  const formatReviewContent = (content) => {
+    // Apply ***text*** as italic
+    content = content.replace(/\*\*\*(.*?)\*\*\*/g, "<i>$1</i>");
+
+    // Apply *text* as bold
+    content = content.replace(/\*(.*?)\*/g, "<b>$1</b>");
+
+    // Apply __text__ as strong
+    content = content.replace(/__(.*?)__/g, "<strong>$1</strong>");
+
+    // Apply [text](url) as anchor
+    content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+
+    // Apply >text as blockquote
+    content = content.replace(/^>(.*)/gm, "<blockquote>$1</blockquote>");
+
+    // Apply ```text``` as code block
+    content = content.replace(/```(.*)```/g, "<code>$1</code>");
+
+    // Apply --- as horizontal rule
+    content = content.replace(/---/g, "<hr>");
+
+    //Apply _text_ as bold
+    content = content.replace(/_(.*?)_/g, "<b>$1</b>");
+
+    // after dot, space, capitalize next letter
+    content = content.replace(/\. [a-z]/g, (match) =>
+      match.toUpperCase().replace(" ", "")
+    );
+
+    // after a dot, break line and capitalize next letter
+    content = content.replace(/\./g, ".<br>");
+
+    return content;
+  };
+
   return (
     <>
       {loading ? (
@@ -76,101 +227,238 @@ const Details = ({ type }) => {
       ) : (
         <>
           <RealNavbar />
-          <div className="font-montserrat">
-            <div
-              className="relative w-full h-screen bg-cover bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
-                  url(${adjustImageQuality(
-                    details?.background || details?.backdrop,
-                    "original"
-                  )})`,
-                backgroundSize: "cover",
-                backgroundPosition: "top center",
-                backgroundRepeat: "no-repeat",
-                backgroundAttachment: "fixed",
-              }}
-            >
-              <div className="absolute inset-0 flex flex-col justify-center items-start p-8 text-white">
-                <h1 className="text-5xl font-bold mb-4">
-                  {details?.title || "Title not available"}
-                </h1>
-
-                <div className="flex items-center space-x-4 mb-6">
-                  {/* Display Release Year for movies or Airing Years for series */}
-                  <span>{details?.releaseYear}</span>
-                  {type === "series" && (
-                    <span>
-                      {details?.numberOfSeasons} Seasons,{" "}
-                      {details?.numberOfEpisodes} Episodes
-                    </span>
-                  )}
-                  <span className="text-yellow-300">
-                    {formatRating(details?.rating)}
-                  </span>
-                  <span>4K UHD</span>
-                </div>
-
-                {/* Genres for both movies and series */}
-                <div className="flex text-sm flex-wrap space-x-2 mb-8">
-                  {details?.genres?.map((genre) => (
-                    <span
-                      key={genre.id}
-                      className="px-2 py-1 bg-gray-800 rounded"
-                    >
-                      {genre.name}
-                    </span>
-                  ))}
-                </div>
-
-                <button
-                  className="bg-white text-black px-32 py-4 font-semibold text-lg rounded hover:bg-gray-200 mb-6"
-                  onClick={() => window.open(details?.trailer, "_blank")}
-                >
-                  Watch Trailer Now
-                </button>
-
-                <p className="text-lg max-w-3xl mb-6">
-                  {details?.description || "Description not available"}
-                </p>
-
-                <div className="flex flex-col space-y-2 font-montserrat font-light">
-                  <div className="font-bold text-lg -mb-1">
-                    Classification:{" "}
-                  </div>
-                  <span>{adultVerification(details?.adult)}</span>
-
-                  <div className="font-bold text-lg mb-1 mt-2">
-                    Audio Language:
-                  </div>
-                  {audioLanguages.length > 0 ? (
-                    <span>{audioLanguages.join(", ")}</span>
-                  ) : (
-                    <span>No audio information available</span>
-                  )}
-
-                  <div className="mt-6 font-light">
-                    <div className="font-bold mb-1 mt-2 text-lg">Starring:</div>
-                    <div className="flex flex-wrap w-full max-w-[50%] overflow-x-auto scrollbar-hide">
-                      {cast.length > 0 ? (
-                        cast.map((actor, index) => (
-                          <span
-                            key={actor.id}
-                            className="whitespace-nowrap mr-1"
-                          >
-                            {actor.name}
-                            {index < cast.length - 1 && ", "}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="font-montserrat min-h-screen text-white relative bg-[#0A0A1A]"
+            style={{
+              backgroundImage: `linear-gradient(rgba(10, 10, 26, .95), rgba(10, 10, 26, 1)), url(${adjustImageQuality(
+                details?.background || details?.backdrop,
+                "original"
+              )})`,
+              backgroundSize: "cover",
+              backgroundPosition: "top",
+            }}
+          >
+            <div className="relative px-4 lg:px-8 py-36 mx-auto z-20 max-w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 w-full">
+                <div className="lg:col-span-2 space-y-6 w-full">
+                  <div className="flex flex-col lg:flex-row items-start space-x-0 lg:space-x-8 space-y-6 lg:space-y-0">
+                    <motion.img
+                      src={adjustImageQuality(
+                        details?.cover ||
+                          details?.poster ||
+                          "https://image.tmdb.org/t/p/w500" +
+                            details?.poster_path ||
+                          "https://image.tmdb.org/t/p/w500" +
+                            details?.backdrop_path,
+                        "original"
+                      )}
+                      alt={details?.title}
+                      className="w-56 h-80 lg:w-[20rem] lg:h-full rounded-lg object-cover shadow-lg"
+                      transition={{ duration: 0.3 }}
+                    />
+                    <div className="space-y-3 max-w-4xl">
+                      <motion.h1 className="text-4xl lg:text-5xl font-bold leading-tight">
+                        {details?.title ||
+                          details?.name ||
+                          "Title not available"}
+                      </motion.h1>
+                      <div className="flex items-center space-x-4 text-md lg:text-lg">
+                        <span>
+                          {isSeries
+                            ? details?.releaseYear ==
+                              details?.last_air_date.slice(0, 4)
+                              ? details?.releaseYear // Display only the year if they are the same
+                              : `${
+                                  details?.releaseYear
+                                } - ${details?.last_air_date.slice(0, 4)}` // Show the range if they are different
+                            : details?.releaseYear}
+                        </span>
+                        {isSeries && (
+                          <span>
+                            {details?.numberOfSeasons} Seasons,{" "}
+                            {details?.numberOfEpisodes} Episodes
                           </span>
-                        ))
-                      ) : (
-                        <span className="text-md">No info available</span>
+                        )}
+                        <span className="text-yellow-300">
+                          {formatRating(
+                            details?.rating || details?.vote_average
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-sm lg:text-base">
+                        {(details?.genres || details?.genre_id)?.map(
+                          (genre) => (
+                            <span
+                              key={genre.id || genre}
+                              className="px-3 mb-2 py-1 bg-gray-800 rounded"
+                            >
+                              {genre.name || genre}
+                            </span>
+                          )
+                        )}
+                      </div>
+                      <motion.button
+                        className="bg-blue-500 text-white px-8 py-2 text-md lg:text-base font-semibold rounded hover:bg-blue-600 mt-4"
+                        onClick={() => window.open(details?.trailer, "_blank")}
+                        whileHover={{ scale: 1.1 }}
+                      >
+                        Watch Trailer
+                      </motion.button>
+                      <p className="text-md lg:text-base leading-relaxed">
+                        {details?.description ||
+                          details?.overview ||
+                          "Description not available"}
+                      </p>
+                      {tagline && (
+                        <p className="text-lg italic font-semibold text-gray-300 mt-4">
+                          &quot;{tagline}&quot;
+                        </p>
                       )}
                     </div>
                   </div>
                 </div>
+                <div className="-mt-4 lg:mt-0">
+                  <div className="font-bold text-base lg:text-lg mb-2">
+                    Director:
+                  </div>
+                  <div>{director || "Unknown"}</div>
+                  {cast.length > 0 && (
+                    <>
+                      <div className="font-bold text-base lg:text-lg mt-4 mb-2">
+                        Starring:
+                      </div>
+                      <div className="flex flex-wrap max-w-full overflow-x-auto">
+                        {cast.map((actor, index) => (
+                          <span key={actor.id} className="whitespace-pre-wrap">
+                            {actor.name}
+                            {index < cast.length - 1 && ", "}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <div className="mt-4">
+                    <span className="font-semibold">Classification: </span>
+                    {adultVerification(details?.adult)}
+                  </div>
+                  <div className="mt-2">
+                    <span className="font-semibold">Audio Languages: </span>
+                    {audioLanguages.join(", ") || "N/A"}
+                  </div>
+                </div>
               </div>
+              {reviews.length > 0 && (
+                <div className="w-full py-10 mt-10">
+                  <h2 className="text-xl lg:text-2xl font-bold mb-6">
+                    Reviews
+                  </h2>
+                  <div className="space-y-4">
+                    {reviews.map((review, index) => (
+                      <div
+                        key={index}
+                        onClick={() => openModal(review)}
+                        className="w-full p-6 rounded-lg shadow-lg bg-[#0A0A1A] text-white relative flex flex-col items-start cursor-pointer"
+                      >
+                        <div className="flex items-center space-x-3 mb-2 w-full">
+                          <img
+                            src={review.avatar}
+                            alt="User"
+                            className="w-10 h-10 rounded-full"
+                          />
+                          <span className="font-bold">
+                            {review.author || "Anonymous"}
+                          </span>
+                        </div>
+                        <p
+                          ref={(el) => (reviewRefs.current[index] = el)}
+                          className={`text-white ${
+                            expandedReviews[index] ? "" : "line-clamp-3"
+                          }`}
+                        >
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: formatReviewContent(review.content),
+                            }}
+                          ></span>
+                        </p>
+                        {showMoreOptions[index] && (
+                          <button
+                            onClick={() => toggleExpandReview(index)}
+                            className="text-blue-500 hover:text-blue-700 mt-2"
+                          >
+                            {expandedReviews[index] ? "View Less" : "View More"}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {similarContent.length > 0 && (
+                <div className="w-full py-10 mt-10">
+                  <h2 className="text-xl lg:text-2xl font-bold mb-6">
+                    Maybe you like it too
+                  </h2>
+                  <Slider {...sliderSettings} className="overflow-hidden">
+                    {similarContent.map((item) => {
+                      const releaseYear = item.release_date
+                        ? new Date(item.release_date).getFullYear()
+                        : "";
+
+                      const imageUrl = item.backdrop_path
+                        ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
+                        : item.poster_path
+                        ? `https://image.tmdb.org/t/p/original${item.poster_path}`
+                        : null;
+
+                      if (!imageUrl) {
+                        return null;
+                      }
+
+                      return (
+                        <motion.div
+                          key={item.id}
+                          className="w-32 h-64 lg:w-36 flex-shrink-0 p-2 relative"
+                          onClick={() => handleSimilarClick(item)}
+                        >
+                          <motion.img
+                            src={imageUrl}
+                            alt={item.title || item.name}
+                            className="w-full h-full object-cover rounded-lg"
+                            style={{
+                              transition: "box-shadow 0.01s linear",
+                            }}
+                          />
+                          <motion.div
+                            className="absolute inset-2 bg-black cursor-pointer bg-opacity-60 rounded-lg flex items-center justify-center opacity-100 transition-opacity duration-300"
+                            initial={{ opacity: 1 }}
+                            whileHover={{ opacity: 0.7 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <span className="text-white text-center text-lg font-semibold px-4">
+                              {item.title || item.name}{" "}
+                              {releaseYear && `(${releaseYear})`}
+                            </span>
+                          </motion.div>
+                        </motion.div>
+                      );
+                    })}
+                  </Slider>
+                </div>
+              )}
             </div>
-          </div>{" "}
+            <Modal
+              isOpen={isModalOpen}
+              onClose={() => setModalOpen(false)}
+              authorName={selectedReview.authorName}
+              avatar={selectedReview.avatar}
+            >
+              <span dangerouslySetInnerHTML={{ __html: modalContent }}></span>
+            </Modal>
+          </motion.div>
         </>
       )}
     </>

@@ -15,8 +15,8 @@ const WatchFilmList = ({ movies }) => {
 
   return (
     <div className="bg-[#0A0A1A] text-white">
-      <h1 className="font-afacadFlux font-light text-center pt-12 sm:pt-20 text-3xl md:text-4xl lg:text-5xl xl:text-6xl pb-14">
-        You gonna find amazing and memorial films. Here, in Vidaria
+      <h1 className="font-afacadFlux font-light text-center pt-32 sm:pt-20 text-3xl md:text-4xl lg:text-5xl xl:text-6xl ">
+        Find amazing & memorial films.
       </h1>
 
       <div

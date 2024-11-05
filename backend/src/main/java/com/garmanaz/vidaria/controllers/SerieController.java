@@ -18,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/series")
+@CrossOrigin(origins = "http://localhost:5173")
 public class SerieController {
 
     private final SerieService serieService;
@@ -44,6 +45,12 @@ public class SerieController {
         } catch (Exception e) {
             throw new RuntimeException("Error fetching series by genre: " + e.getMessage());
         }
+    }
+
+    //check if exists in db
+    @GetMapping("/check/{id}")
+    public ResponseEntity<Boolean> checkIfSerieExists(@PathVariable Long id) {
+        return ResponseEntity.ok(serieService.existsById(id));
     }
 
     @GetMapping("/search")
@@ -112,6 +119,13 @@ public class SerieController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while synchronizing series: " + e.getMessage());
         }
     }
+
+    @PostMapping
+    public ResponseEntity<Serie> saveSeries(@RequestBody Serie series) {
+        Serie savedSeries = serieService.saveSerie(series);
+        return ResponseEntity.ok(savedSeries);
+    }
+
 
 
 }

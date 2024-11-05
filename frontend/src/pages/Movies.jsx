@@ -84,16 +84,17 @@ const Movies = () => {
       ) : (
         <div className="min-h-screen overflow-x-hidden transition-colors text-white bg-[#0A0A1A]">
           <RealNavbar />
-          <Header headerMovies={headerMovies} /> {/* Pasamos las películas seleccionadas */}
+          <Header headerMovies={headerMovies} isMoviesPage={true} />{" "}
+          {/* Pasamos las películas seleccionadas */}
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="space-y-10 mt-10 px-2 md:px-4 lg:px-8"
+            className="space-y-10 mt-10 px-4 md:px-8 lg:px-12"
           >
             {Object.keys(moviesByGenre).map((genre) => (
-              <div className="space-y-6" key={genre}>
-                <h2 className="text-3xl font-bold text-white">{`${genre} Movies`}</h2>
+              <div className="space-y-4" key={genre}>
+                <h2 className="text-2xl md:text-3xl font-bold text-white">{`${genre} Movies`}</h2>
                 <Slider
                   {...createSliderSettings(
                     genre,
@@ -120,7 +121,7 @@ const Movies = () => {
                           <motion.img
                             src={movie.cover}
                             alt={movie.title}
-                            className="w-full h-[19rem] object-cover"
+                            className="w-full h-[12rem] md:h-[16rem] lg:h-[19rem] object-cover rounded-lg"
                             whileHover={{
                               opacity: 0.7,
                             }}

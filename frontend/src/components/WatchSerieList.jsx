@@ -20,7 +20,7 @@ const WatchSerieList = ({ series }) => {
 
   return (
     <div className="bg-[#0A0A1A] text-white">
-      <h1 className="font-afacadFlux font-light text-center  pt-4   text-3xl md:text-4xl lg:text-5xl xl:text-6xl pb-6">
+      <h1 className="font-afacadFlux font-light text-center  pt-14  text-3xl md:text-4xl lg:text-5xl xl:text-6xl ">
         The best tv shows are waiting for you
       </h1>
 

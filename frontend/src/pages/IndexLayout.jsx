@@ -76,35 +76,37 @@ const IndexLayout = () => {
             className="absolute top-0 left-0 h-full w-full object-cover object-center"
             src={wppimgmovies}
             alt="mimg"
-            initial={{ opacity: 0, scale: 0.9 }} // Inicia invisible y un poco más pequeño
-            animate={{ opacity: 1, scale: 1 }} // Se desvanece a visible y escala a su tamaño original
-            transition={{ duration: 2 }} // Duración de la animación
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 2 }}
           />
-
+  
           {/* Overlay con degradado oscuro desde abajo hacia arriba */}
           <div className="absolute backdrop-blur-[2px] inset-0 bg-gradient-to-t from-[#0A0A1A] via-black/70 to-[rgba(0,0,0,0.14)]"></div>
-
+  
           {/* Contenido encima de la imagen */}
-          <div className="relative z-10 flex flex-col justify-center items-center text-center w-full cursor-default ">
-            <h1 className="font-bold font-maxSans text-9xl text-white transition duration-300 ease-in-out transform -mb-5">
+          <div className="relative z-10 flex flex-col justify-center items-center text-center w-full cursor-default px-4 sm:px-8">
+            <h1 className="font-bold font-maxSans text-8xl sm:text-8xl md:text-8xl lg:text-9xl text-white transition duration-300 ease-in-out transform -mb-3 sm:-mb-5">
               vidaria
             </h1>
-            <p className="text-[2rem] font-bold text-white">
+            <p className="text-2xl sm:text-2xl md:text-2xl lg:text-3xl font-bold text-white">
               DISCOVER MORE, FOR LESS
             </p>
-
+  
             <button
               onClick={() => setIsModalOpen(true)}
-              className="btn py-3 px-4 bg-[rgb(0,43,231)] mt-4 text-white font-bold rounded-xl border-transparent transition duration-100 ease-in transform hover:bg-[rgb(0,30,180)]"
+              className="btn py-2 sm:py-3 px-3 sm:px-4 bg-[rgb(0,43,231)] mt-4 text-white font-bold rounded-xl border-transparent transition duration-100 ease-in transform hover:bg-[rgb(0,30,180)]"
             >
               START YOUR JOURNEY NOW
             </button>
           </div>
         </div>
       </header>
-
-      <WatchFilmList movies={featuredMovies} />
-      <WatchSerieList series={featuredSeries} />
+  
+      <div className="px-4 sm:px-8">
+        <WatchFilmList movies={featuredMovies} />
+        <WatchSerieList series={featuredSeries} />
+      </div>
     </>
   );
 };

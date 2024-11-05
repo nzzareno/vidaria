@@ -239,6 +239,11 @@ public class SerieService {
         return serieRepository.searchSeries(title, genres, releaseDateFrom, releaseDateTo, ratingFrom, ratingTo, popularityFrom, popularityTo, pageable);
     }
 
+    // check if exists serie in db
+    public boolean existsById(Long id) {
+        return serieRepository.existsById(id);
+    }
+
 
     public Page<Serie> getSeries(Pageable pageable) {
         return serieRepository.findAll(pageable);

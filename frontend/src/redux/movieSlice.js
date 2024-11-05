@@ -40,7 +40,6 @@ const movieSlice = createSlice({
     },
 
     setMovieTagline: (state, action) => {
-      console.log("Updating tagline to:", action.payload); // Verifica que se recibe correctamente
       state.taglineMovie = action.payload;
     },
 

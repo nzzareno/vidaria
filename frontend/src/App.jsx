@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import IndexLayout from "./pages/IndexLayout";
 import Home from "./pages/Home";
 import Movies from "./pages/Movies";
@@ -10,6 +15,8 @@ import Footer from "./components/Footer";
 import { ModalProvider } from "./context/ModalContext";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import Series from "./pages/Series";
+import NotFound from "./components/NotFound";
 
 function App() {
   return (
@@ -26,10 +33,7 @@ function App() {
 function AppContent() {
   const location = useLocation();
 
-  // Define las rutas de detalles en las que no quieres que se muestre el Footer
   const hideFooterRoutes = ["/movies/:id", "/series/:id"];
-
-  // Chequea si la ruta actual incluye alguna de las rutas donde quieres ocultar el Footer
   const shouldShowFooter = !hideFooterRoutes.some((path) =>
     location.pathname.startsWith(path.split(":")[0])
   );
@@ -38,6 +42,7 @@ function AppContent() {
     <>
       <Routes>
         <Route path="/" element={<IndexLayout />} />
+
         <Route
           path="/home"
           element={
@@ -46,14 +51,42 @@ function AppContent() {
             </PrivateRoute>
           }
         />
-        <Route path="/movies" element={<Movies />} />
-        
-        {/* Rutas para los detalles de películas y series */}
-        <Route path="/movies/:id" element={<Details type="movie" />} />
-        <Route path="/series/:id" element={<Details type="series" />} />
+        <Route
+          path="/movies"
+          element={
+            <PrivateRoute>
+              <Movies />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/series"
+          element={
+            <PrivateRoute>
+              <Series />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/movies/:id"
+          element={
+            <PrivateRoute>
+              <Details type="movie" />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/series/:id"
+          element={
+            <PrivateRoute>
+              <Details type="series" />
+            </PrivateRoute>
+          }
+        />
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
-      {/* Muestra el Footer solo si shouldShowFooter es true */}
       {shouldShowFooter && <Footer />}
     </>
   );

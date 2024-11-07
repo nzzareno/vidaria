@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Builder
 @Getter
@@ -21,6 +24,8 @@ public class AppUser {
     @NonNull
     @Column(unique = true)
     private String username;
+
+
 
     @Column(unique = true)
     private String email;

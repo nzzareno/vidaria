@@ -44,22 +44,15 @@ export const getTopSeries = async (titles) => {
   return seriesResults;
 };
 
+// serieService.js
 export const searchSeries = async (filters = {}) => {
   const params = new URLSearchParams(filters).toString();
   try {
     const response = await fetch(`${API_URL}/search?${params}`);
-    const data = await checkResponse(response);
-
-    // Asegúrate de que `content` esté en el formato esperado
-    if (data && Array.isArray(data.content)) {
-      return data;
-    } else {
-      console.warn("La estructura de datos no es la esperada:", data);
-      return { content: [] };
-    }
+    return checkResponse(response);
   } catch (error) {
-    console.error(`Failed to search series with filters ${params}:`, error);
-    return { content: [] };
+    console.error("Failed to fetch series:", error);
+    return [];
   }
 };
 

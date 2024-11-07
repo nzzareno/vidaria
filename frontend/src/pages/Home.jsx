@@ -3,20 +3,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setError } from "../redux/movieSlice";
 import Slider from "react-slick";
 import { getMoviesByCategory } from "../services/movieService";
+import { getPopularSeries, getHeaderSeries } from "../services/serieService"; // Import necessary series functions
 import { RingLoader } from "react-spinners";
 import { motion } from "framer-motion";
 import Header from "../components/Header";
 import { NextArrow, PrevArrow } from "../utils/sliderUtils";
-import { adjustImageQuality, createSliderSettings } from "../utils/sliderSettings.jsx";
-import RealNavbar from "../components/RealNavbar.jsx";
-import { searchSeries } from "../services/serieService.js";
 import {
-  setAnimationSeries,
-  setFamilySeries,
-  setLoadingSerie,
-  setPopularSeries,
-  setTopRatedSeries,
-} from "../redux/serieSlice.js";
+  adjustImageQuality,
+  createSliderSettings,
+} from "../utils/sliderSettings.jsx";
+import RealNavbar from "../components/RealNavbar.jsx";
 import { Link } from "react-router-dom";
 
 const Home = () => {
@@ -26,7 +22,8 @@ const Home = () => {
   const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [headerMovies, setHeaderMovies] = useState([]);
-  const [headerSeries, setHeaderSeries] = useState([]); // Nuevo estado para las series en el header
+  const [headerSeries, setHeaderSeries] = useState([]); // Series for the header
+  const [popularSeries, setPopularSeries] = useState([]); // State for popular series
   const [currentSlide, setCurrentSlide] = useState({
     popular: 0,
     upcoming: 0,
@@ -36,7 +33,7 @@ const Home = () => {
   });
   const [isNextDisabled, setIsNextDisabled] = useState({
     popular: false,
-    upcoming : false,
+    upcoming: false,
     trending: false,
     nowPlaying: false,
     topRated: false,
@@ -44,13 +41,6 @@ const Home = () => {
   const [windowSize, setWindowSize] = useState(window.innerWidth);
 
   const dispatch = useDispatch();
-  const {
-    topRatedSeries,
-    popularSeries,
-    animationSeries,
-    familySeries,
-    loadingSerie,
-  } = useSelector((state) => state.series);
   const { loading } = useSelector((state) => state.movies);
 
   useEffect(() => {
@@ -88,9 +78,6 @@ const Home = () => {
         nowPlaying: nowPlayingMovies,
         topRated: topRatedMovies,
         popularSeries: popularSeries,
-        animationSeries: animationSeries,
-        familySeries: familySeries,
-        topRatedSeries: topRatedSeries,
       }[category];
 
       const totalItems = categoryItems.length;
@@ -105,9 +92,6 @@ const Home = () => {
       nowPlayingMovies,
       topRatedMovies,
       popularSeries,
-      animationSeries,
-      familySeries,
-      topRatedSeries,
       windowSize,
     ]
   );
@@ -117,7 +101,10 @@ const Home = () => {
       try {
         const movies = [];
         for (let page = 1; page <= pages; page++) {
-          const response = await getMoviesByCategory(category, { page, size: 10 });
+          const response = await getMoviesByCategory(category, {
+            page,
+            size: 10,
+          });
           movies.push(...response);
         }
         setMovies(movies);
@@ -132,44 +119,47 @@ const Home = () => {
   useEffect(() => {
     const loadAllContent = async () => {
       dispatch(setLoading(true));
-      dispatch(setLoadingSerie(true));
 
       try {
-        // Fetch movies
-        const [popular, topRated, upcoming, nowPlaying, trending] = await Promise.all([
+        const [
+          popular,
+          topRated,
+          upcoming,
+          nowPlaying,
+          trending,
+          headerSeriesData,
+          popularSeriesData,
+        ] = await Promise.all([
           fetchMoviesByCategory("popular", setPopularMovies, 2),
           fetchMoviesByCategory("top_rated", setTopRatedMovies, 2),
           fetchMoviesByCategory("upcoming", setUpcomingMovies, 2),
           fetchMoviesByCategory("now_playing", setNowPlayingMovies, 2),
           fetchMoviesByCategory("trending", setTrendingMovies, 2),
+          getHeaderSeries(), // Fetch header series
+          getPopularSeries(), // Fetch popular series
         ]);
 
-        const allMovies = [...popular, ...topRated, ...upcoming, ...nowPlaying, ...trending];
-        const highPopularityMovies = allMovies.filter((movie) => movie.rating && movie.rating >= 8);
-        const shuffledMovies = highPopularityMovies.sort(() => 0.5 - Math.random()).slice(0, 4);
+        const allMovies = [
+          ...popular,
+          ...topRated,
+          ...upcoming,
+          ...nowPlaying,
+          ...trending,
+        ];
+        const highPopularityMovies = allMovies.filter(
+          (movie) => movie.rating && movie.rating >= 7.3
+        );
+        const shuffledMovies = highPopularityMovies
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 4);
         setHeaderMovies(shuffledMovies);
 
-        // Fetch series and access `content` directly
-        const popularSeries = (await searchSeries("popular", 2)).content || [];
-        const topRatedSeries = (await searchSeries("top_rated", 4)).content || [];
-        const animationSeries = (await searchSeries("animation", 2)).content || [];
-        const familySeries = (await searchSeries("family", 2)).content || [];
-        
-        const allSeries = [
-          ...popularSeries,
-          ...topRatedSeries,
-          ...animationSeries,
-          ...familySeries,
-        ];
-        const highRatedSeries = allSeries.filter((serie) => serie.rating && serie.rating >= 8);
-        const shuffledSeries = highRatedSeries.sort(() => 0.5 - Math.random()).slice(0, 4);
-        setHeaderSeries(shuffledSeries);
-        
+        setHeaderSeries(headerSeriesData); // Set header series
+        setPopularSeries(popularSeriesData); // Set popular series
       } catch (error) {
         console.error("Error loading content:", error);
       } finally {
         dispatch(setLoading(false));
-        dispatch(setLoadingSerie(false));
       }
     };
 
@@ -184,7 +174,12 @@ const Home = () => {
     return 1;
   };
 
-  const renderSliderSection = (title, categoryItems, categoryKey, titleClass) => (
+  const renderSliderSection = (
+    title,
+    categoryItems,
+    categoryKey,
+    titleClass
+  ) => (
     <motion.section
       key={categoryKey}
       initial={{ opacity: 0 }}
@@ -194,7 +189,9 @@ const Home = () => {
     >
       {categoryItems.length > 0 && (
         <div className="space-y-4">
-          <h2 className={`text-2xl md:text-3xl font-bold ${titleClass}`}>{title}</h2>
+          <h2 className={`text-2xl md:text-3xl font-bold ${titleClass}`}>
+            {title}
+          </h2>
           <Slider
             {...createSliderSettings(
               categoryKey,
@@ -210,7 +207,12 @@ const Home = () => {
             key={windowSize}
           >
             {categoryItems.map((item) => (
-              <Link to={`/${categoryKey.includes("Series") ? "series" : "movies"}/${item.id}`} key={item.id}>
+              <Link
+                to={`/${categoryKey.includes("Series") ? "series" : "movies"}/${
+                  item.id
+                }`}
+                key={item.id}
+              >
                 <motion.div
                   className="px-2"
                   initial={{ opacity: 0 }}
@@ -219,7 +221,10 @@ const Home = () => {
                 >
                   <motion.div className="relative bg-[#0A0A1A] cursor-pointer transition-colors rounded-lg">
                     <motion.img
-                      src={adjustImageQuality(item.cover || item.poster, "w300")}
+                      src={adjustImageQuality(
+                        item.cover || item.poster,
+                        "w300"
+                      )}
                       alt={item.title}
                       className="w-full h-auto max-h-[200px] md:max-h-[300px] object-cover rounded-lg"
                       whileHover={{ opacity: 0.7 }}
@@ -236,14 +241,18 @@ const Home = () => {
 
   return (
     <>
-      {loading || loadingSerie ? (
+      {loading ? (
         <div className="flex justify-center items-center min-h-screen bg-[#0A0A1A]">
           <RingLoader color="#FF0000" size={200} />
         </div>
       ) : (
         <div className="min-h-screen overflow-x-hidden transition-colors text-white bg-[#0A0A1A]">
           <RealNavbar />
-          <Header headerMovies={headerMovies} headerSeries={headerSeries} isCombinedPage={true} />
+          <Header
+            headerMovies={headerMovies}
+            headerSeries={headerSeries}
+            isCombinedPage={true}
+          />
           <div className="space-y-6 px-4 md:px-8 mt-4">
             {renderSliderSection(
               "Popular Movies",
@@ -276,27 +285,9 @@ const Home = () => {
               "text-2xl md:text-3xl font-bold mb-4"
             )}
             {renderSliderSection(
-              "Animation Series",
-              animationSeries,
-              "animationSeries",
-              "text-2xl md:text-3xl font-bold mb-4"
-            )}
-            {renderSliderSection(
-              "Family Series",
-              familySeries,
-              "familySeries",
-              "text-2xl md:text-3xl font-bold mb-4"
-            )}
-            {renderSliderSection(
               "Popular Series",
               popularSeries,
               "popularSeries",
-              "text-2xl md:text-3xl font-bold mb-4"
-            )}
-            {renderSliderSection(
-              "Top Rated Series",
-              topRatedSeries,
-              "topRatedSeries",
               "text-2xl md:text-3xl font-bold mb-4"
             )}
           </div>

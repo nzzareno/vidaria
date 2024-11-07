@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useContext } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   fetchMovieDetails,
@@ -10,6 +10,10 @@ import {
   fetchReviews,
   fetchSimilar,
   fetchMovieIfNotInDB,
+  fetchStreamingLinks,
+  addToWatchlist,
+  checkIfInWatchlist,
+  removeFromWatchlist,
 } from "../services/detailsService";
 import { RingLoader } from "react-spinners";
 import { adjustImageQuality } from "../utils/sliderSettings";
@@ -20,6 +24,9 @@ import Slider from "react-slick";
 import { NextArrow, PrevArrow } from "../utils/sliderUtils";
 import { motion } from "framer-motion";
 import Modal from "../utils/Modal";
+import { fetchUserData } from "../services/authService";
+import { FaPlus, FaCheck } from "react-icons/fa";
+import ModalContext from "../context/ModalContext";
 
 const adultVerification = (adult) => (adult ? "18+" : "13+");
 const formatRating = (rating) => (rating ? rating.toFixed(1) : "N/A");
@@ -46,10 +53,11 @@ const Details = () => {
   const [selectedReview, setSelectedReview] = useState({});
   const [expandedReviews, setExpandedReviews] = useState({});
   const [showMoreOptions, setShowMoreOptions] = useState({});
+  const [streamingLinks, setStreamingLinks] = useState([]);
 
+  const { isInWatchlist, setIsInWatchlist } = useContext(ModalContext);
   const dispatch = useDispatch();
-
-  const reviewRefs = useRef([]); // Array of refs for each review
+  const reviewRefs = useRef([]);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -63,6 +71,16 @@ const Details = () => {
           data = await fetchMovieIfNotInDB(id, externalType);
         }
 
+        const userData = await fetchUserData();
+        if (userData?.id) {
+          const existsInWatchlist = await checkIfInWatchlist(
+            userData.id,
+            isSeries ? null : id,
+            isSeries ? id : null
+          );
+          setIsInWatchlist(existsInWatchlist);
+        }
+
         if (isSeries && !data.last_air_date) {
           const externalData = await fetchMovieIfNotInDB(id, externalType);
           data.last_air_date =
@@ -70,6 +88,9 @@ const Details = () => {
         }
 
         if (data) {
+          const streamingData = await fetchStreamingLinks(id, externalType);
+          setStreamingLinks(streamingData || []);
+
           const castData = await fetchCast(id, externalType);
           const crewData = await fetchCrew(id, externalType);
           const audioData = await fetchMovieAudio(id, externalType);
@@ -137,10 +158,56 @@ const Details = () => {
     };
 
     fetchDetails();
-  }, [id, isSeries, externalType, internalType, dispatch]);
+  }, [id, isSeries, externalType, internalType, dispatch, setIsInWatchlist]);
+
+  const handleAddToWatchlist = async () => {
+    try {
+      const userData = await fetchUserData();
+      const userId = userData?.id;
+
+      if (!userId) {
+        return;
+      }
+
+      if (!isInWatchlist) {
+        const response = await addToWatchlist(
+          userId,
+          isSeries ? null : id,
+          isSeries ? id : null
+        );
+        if (response) {
+          setIsInWatchlist(true); // Cambia el estado a "En Watchlist"
+        }
+      }
+    } catch (error) {
+      console.error("Error adding to watchlist:", error);
+    }
+  };
+
+  const handleRemoveFromWatchlist = async () => {
+    try {
+      const userData = await fetchUserData();
+      const userId = userData?.id;
+
+      if (!userId) return;
+
+      const response = await removeFromWatchlist(
+        userId,
+        isSeries ? null : id,
+        isSeries ? id : null
+      );
+
+      if (response) {
+        setIsInWatchlist(false); // Cambia el estado para reflejar que ya no está en la Watchlist
+      } else {
+        console.error("Failed to remove from watchlist");
+      }
+    } catch (error) {
+      console.error("Error removing from watchlist:", error);
+    }
+  };
 
   useEffect(() => {
-    // After reviews are rendered, check if any of them exceed four lines
     reviewRefs.current.forEach((ref, index) => {
       if (ref && ref.scrollHeight > ref.clientHeight) {
         setShowMoreOptions((prev) => ({ ...prev, [index]: true }));
@@ -156,7 +223,7 @@ const Details = () => {
   };
 
   const openModal = (review) => {
-    setModalContent(formatReviewContent(review.content)); // Apply formatting here
+    setModalContent(formatReviewContent(review.content));
     setSelectedReview({
       authorName: review.author,
       avatar: review.avatar || "default-avatar.jpg",
@@ -166,7 +233,7 @@ const Details = () => {
 
   const sliderSettings = {
     dots: false,
-    infinite: false,
+    infinite: true,
     speed: 500,
     autoplay: false,
     arrows: true,
@@ -183,39 +250,50 @@ const Details = () => {
   };
 
   const formatReviewContent = (content) => {
-    // Apply ***text*** as italic
     content = content.replace(/\*\*\*(.*?)\*\*\*/g, "<i>$1</i>");
-
-    // Apply *text* as bold
     content = content.replace(/\*(.*?)\*/g, "<b>$1</b>");
-
-    // Apply __text__ as strong
     content = content.replace(/__(.*?)__/g, "<strong>$1</strong>");
-
-    // Apply [text](url) as anchor
     content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
-
-    // Apply >text as blockquote
     content = content.replace(/^>(.*)/gm, "<blockquote>$1</blockquote>");
-
-    // Apply ```text``` as code block
     content = content.replace(/```(.*)```/g, "<code>$1</code>");
-
-    // Apply --- as horizontal rule
     content = content.replace(/---/g, "<hr>");
-
-    //Apply _text_ as bold
     content = content.replace(/_(.*?)_/g, "<b>$1</b>");
-
-    // after dot, space, capitalize next letter
     content = content.replace(/\. [a-z]/g, (match) =>
       match.toUpperCase().replace(" ", "")
     );
-
-    // after a dot, break line and capitalize next letter
     content = content.replace(/\./g, ".<br>");
-
     return content;
+  };
+
+  const renderStreamingLinks = (links) => {
+    const filteredLinks = links.filter(
+      (link) => !link.provider.toLowerCase().includes("maxamazonchannel")
+    );
+
+    return (
+      <div className="flex flex-wrap gap-4 mt-4">
+        {filteredLinks.map((link) => (
+          <div
+            key={link.provider}
+            className="p-2 rounded-full bg-gray-900 cursor-pointer"
+            onClick={() =>
+              window.open(
+                `https://www.${link.provider
+                  .toLowerCase()
+                  .replace(/\s+/g, "")}.com`,
+                "_blank"
+              )
+            }
+          >
+            <img
+              src={link.logo}
+              className="w-12 h-12 rounded-full object-cover transition-transform duration-200 hover:scale-110"
+              alt={link.provider}
+            />
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -234,7 +312,9 @@ const Details = () => {
             className="font-montserrat min-h-screen text-white relative bg-[#0A0A1A]"
             style={{
               backgroundImage: `linear-gradient(rgba(10, 10, 26, .95), rgba(10, 10, 26, 1)), url(${adjustImageQuality(
-                details?.background || details?.backdrop,
+                details?.background ||
+                  details?.backdrop ||
+                  "https://image.tmdb.org/t/p/w500" + details?.backdrop_path,
                 "original"
               )})`,
               backgroundSize: "cover",
@@ -268,12 +348,12 @@ const Details = () => {
                       <div className="flex items-center space-x-4 text-md lg:text-lg">
                         <span>
                           {isSeries
-                            ? details?.releaseYear ==
+                            ? details?.releaseYear ===
                               details?.last_air_date.slice(0, 4)
-                              ? details?.releaseYear // Display only the year if they are the same
+                              ? details?.releaseYear
                               : `${
                                   details?.releaseYear
-                                } - ${details?.last_air_date.slice(0, 4)}` // Show the range if they are different
+                                } - ${details?.last_air_date.slice(0, 4)}`
                             : details?.releaseYear}
                         </span>
                         {isSeries && (
@@ -300,13 +380,47 @@ const Details = () => {
                           )
                         )}
                       </div>
-                      <motion.button
-                        className="bg-blue-500 text-white px-8 py-2 text-md lg:text-base font-semibold rounded hover:bg-blue-600 mt-4"
-                        onClick={() => window.open(details?.trailer, "_blank")}
-                        whileHover={{ scale: 1.1 }}
-                      >
-                        Watch Trailer
-                      </motion.button>
+                      <div className="flex space-x-4 mt-4">
+                        <motion.button
+                          className="bg-white text-black px-10 py-2 text-sm lg:text-base font-medium rounded hover:bg-gray-200"
+                          onClick={() =>
+                            window.open(details?.trailer, "_blank")
+                          }
+                        >
+                          Watch Trailer
+                        </motion.button>
+                        <motion.button
+                          onClick={
+                            isInWatchlist
+                              ? handleRemoveFromWatchlist
+                              : handleAddToWatchlist
+                          }
+                          className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-400 hover:border-white transition duration-200"
+                          style={{
+                            backgroundColor: isInWatchlist
+                              ? "#1db954"
+                              : "transparent",
+                          }}
+                          title={
+                            isInWatchlist
+                              ? "Remove from Watchlist"
+                              : "Add to Watchlist"
+                          }
+                        >
+                          {isInWatchlist ? (
+                            <FaCheck className="text-white text-lg" />
+                          ) : (
+                            <FaPlus className="text-white text-lg" />
+                          )}
+                        </motion.button>
+                      </div>
+
+                      {streamingLinks.length > 0 && (
+                        <div className="mt-4">
+                          {renderStreamingLinks(streamingLinks)}
+                        </div>
+                      )}
+
                       <p className="text-md lg:text-base leading-relaxed">
                         {details?.description ||
                           details?.overview ||
@@ -350,6 +464,7 @@ const Details = () => {
                   </div>
                 </div>
               </div>
+
               {reviews.length > 0 && (
                 <div className="w-full py-10 mt-10">
                   <h2 className="text-xl lg:text-2xl font-bold mb-6">
@@ -397,6 +512,7 @@ const Details = () => {
                   </div>
                 </div>
               )}
+
               {similarContent.length > 0 && (
                 <div className="w-full py-10 mt-10">
                   <h2 className="text-xl lg:text-2xl font-bold mb-6">
@@ -407,17 +523,12 @@ const Details = () => {
                       const releaseYear = item.release_date
                         ? new Date(item.release_date).getFullYear()
                         : "";
-
                       const imageUrl = item.backdrop_path
                         ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
                         : item.poster_path
                         ? `https://image.tmdb.org/t/p/original${item.poster_path}`
                         : null;
-
-                      if (!imageUrl) {
-                        return null;
-                      }
-
+                      if (!imageUrl) return null;
                       return (
                         <motion.div
                           key={item.id}
@@ -428,9 +539,7 @@ const Details = () => {
                             src={imageUrl}
                             alt={item.title || item.name}
                             className="w-full h-full object-cover rounded-lg"
-                            style={{
-                              transition: "box-shadow 0.01s linear",
-                            }}
+                            style={{ transition: "box-shadow 0.01s linear" }}
                           />
                           <motion.div
                             className="absolute inset-2 bg-black cursor-pointer bg-opacity-60 rounded-lg flex items-center justify-center opacity-100 transition-opacity duration-300"

@@ -136,6 +136,12 @@ export const fetchTagline = async (id, type) => {
 
   try {
     const url = `${VITE_TMDB_DETAILS}${type}/${id}?api_key=${API_KEY}&language=en-US`;
+
+    if (!url) {
+      console.warn(`URL not provided for fetchTagline with ID ${id}`);
+      return null;
+    }
+
     const response = await fetch(url);
 
     if (response.status === 404) {
@@ -182,6 +188,155 @@ export const fetchReviews = async (id, type) => {
     return [];
   }
 };
+
+export const fetchStreamingLinks = async (id, type) => {
+  try {
+    const url = `${VITE_TMDB_DETAILS}${type}/${id}/watch/providers?api_key=${API_KEY}`;
+    const response = await fetch(url);
+
+    if (response.status === 404) {
+      console.warn(`Streaming links not found for ${type} with ID ${id}`);
+      return [];
+    }
+
+    if (!response.ok)
+      throw new Error(`Failed to fetch ${type} streaming links`);
+
+    const data = await response.json();
+    const streamingLinks = data.results.AR?.flatrate || [];
+
+    // Filtrar para mostrar solo un logo por proveedor único y excluir "maxamazonchannel"
+    const uniqueLinks = streamingLinks.reduce((acc, link) => {
+      const providerName = link.provider_name.toLowerCase();
+      if (
+        !acc.some((item) => item.provider === link.provider_name) &&
+        !providerName.includes("maxamazonchannel")
+      ) {
+        acc.push({
+          provider: link.provider_name,
+          logo: `https://image.tmdb.org/t/p/original${link.logo_path}`,
+        });
+      }
+      return acc;
+    }, []);
+
+    return uniqueLinks;
+  } catch (error) {
+    console.error(`Error fetching ${type} streaming links:`, error);
+    return [];
+  }
+};
+
+export const addToWatchlist = async (userId, movieId, serieId) => {
+  try {
+    const response = await fetch(`${API_BASE}/api/watchlist/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ userId, movieId, serieId }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to add to watchlist: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error adding to watchlist:", error);
+    return null;
+  }
+};
+
+export const checkIfInWatchlist = async (userId, movieId, serieId) => {
+  const type = movieId ? "movie" : "serie";
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/watchlist/check?userId=${userId}&${type}Id=${
+        movieId || serieId
+      }`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await response.json();
+    return data.exists; // Asume que el backend devuelve `exists: true/false`
+  } catch (error) {
+    console.error("Error checking watchlist:", error);
+    return false;
+  }
+};
+
+export const getWatchlist = async (userId) => {
+  try {
+    const response = await fetch(`${API_BASE}/api/watchlist/${userId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch watchlist: ${response.statusText}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching watchlist:", error);
+    return [];
+  }
+};
+
+export const removeFromWatchlist = async (userId, movieId, serieId) => {
+  try {
+    const type = movieId ? `movieId=${movieId}` : `serieId=${serieId}`;
+    const url = `${API_BASE}/api/watchlist?${type}&userId=${userId}`;
+
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to remove from watchlist: ${response.statusText}`
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error removing from watchlist:", error);
+    return null;
+  }
+};
+
+
+export const clearWatchlist = async (userId) => {
+  try {
+    const response = await fetch(`${API_BASE}/api/watchlist/clear/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to clear watchlist: ${response.statusText}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error clearing watchlist:", error);
+    return null;
+  }
+};
+
+
 
 export const fetchSimilar = async (id, type) => {
   try {

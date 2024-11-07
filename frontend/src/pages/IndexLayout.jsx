@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { motion } from "framer-motion"; // Importa el componente motion
+import { motion } from "framer-motion";
 import wppimgmovies from "../assets/img/wppimgmovies.jpg";
 import Home from "./Home";
 import WatchFilmList from "../components/WatchFilmList";
@@ -86,10 +86,10 @@ const IndexLayout = () => {
   
           {/* Contenido encima de la imagen */}
           <div className="relative z-10 flex flex-col justify-center items-center text-center w-full cursor-default px-4 sm:px-8">
-            <h1 className="font-bold font-maxSans text-8xl sm:text-8xl md:text-8xl lg:text-9xl text-white transition duration-300 ease-in-out transform -mb-3 sm:-mb-5">
+            <h1 className="font-bold font-maxSans text-5xl sm:text-6xl md:text-7xl lg:text-9xl text-white transition duration-300 ease-in-out transform -mb-3 sm:-mb-5">
               vidaria
             </h1>
-            <p className="text-2xl sm:text-2xl md:text-2xl lg:text-3xl font-bold text-white">
+            <p className="text-lg sm:text-2xl md:text-3xl lg:text-3xl font-bold text-white">
               DISCOVER MORE, FOR LESS
             </p>
   
@@ -104,8 +104,11 @@ const IndexLayout = () => {
       </header>
   
       <div className="px-4 sm:px-8">
-        <WatchFilmList movies={featuredMovies} />
-        <WatchSerieList series={featuredSeries} />
+        {/* Grid para películas y series */}
+        <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+          <WatchFilmList movies={featuredMovies} />
+          <WatchSerieList series={featuredSeries} />
+        </div>
       </div>
     </>
   );

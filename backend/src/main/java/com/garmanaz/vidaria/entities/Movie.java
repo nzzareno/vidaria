@@ -56,10 +56,15 @@ public class Movie {
     @JsonManagedReference
     private Category category;
 
+
+
     @ManyToMany
     @JoinTable(name = "movie_genre", joinColumns = @JoinColumn(name = "movie_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
     @JsonManagedReference
     private List<Genre> genres = new ArrayList<>();
 
     private String trailer;
+
+    public Movie(Long movieId, Object o, Object o1) {
+    }
 }

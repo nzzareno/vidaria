@@ -80,13 +80,13 @@ export const fetchUserData = async () => {
       }
 
       const userData = await response.json();
-      return userData; // Retorna los datos del usuario si son válidos
+      return userData; // Retorna el usuario con ID, username, etc.
     } catch (error) {
       console.error("Error al obtener los datos del usuario:", error.message);
-      return { error: error.message };
+      return null;
     }
   } else {
-    return null; // Retorna null si no hay token
+    return null;
   }
 };
 

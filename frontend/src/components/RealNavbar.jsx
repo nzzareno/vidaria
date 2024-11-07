@@ -1,16 +1,15 @@
-// RealNavbar.js
 import { useEffect, useState } from "react";
-import { FaBars } from "react-icons/fa";
+import { FaBars, FaBookmark } from "react-icons/fa";
 import { GrLogout } from "react-icons/gr";
 import { useDispatch } from "react-redux";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import Search from "./Search";
 
 const RealNavbar = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768); // Cambiado a 1230px
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false); // Estado para scroll
-  const location = useLocation(); // Para obtener la ruta actual
-
+  const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -22,11 +21,10 @@ const RealNavbar = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768); // Cambiado a 1230px
+      setIsMobile(window.innerWidth <= 768);
     };
 
     const handleScroll = () => {
-      // Cambiar estado isScrolled según el desplazamiento
       setIsScrolled(window.scrollY > 0);
     };
 
@@ -39,16 +37,22 @@ const RealNavbar = () => {
     };
   }, []);
 
-  // Definir el estilo de fondo según la ruta, scroll y modo (móvil o pantalla completa)
-  const isDetailsPage = location.pathname.startsWith("/movies/") || location.pathname.startsWith("/series/");
+  const isDetailsPage =
+    location.pathname.startsWith("/movies/") ||
+    location.pathname.startsWith("/series/");
   const isHomePage = location.pathname === "/home";
   const isMoviesPage = location.pathname === "/movies";
 
-  // Aplicar un fondo de color en móvil, y en desktop solo si ha hecho scroll o no es la página de detalles
   const navbarStyle =
-    isMobile || (isScrolled && isDetailsPage) || (!isDetailsPage && !isHomePage && !isMoviesPage)
-      ? "bg-[#0A0A1A]" // Fondo de color en mobile y cuando hay scroll en detalles
-      : "bg-transparent"; // Fondo transparente solo para Details en pantalla completa sin scroll
+    isMobile ||
+    (isScrolled && isDetailsPage) ||
+    (!isDetailsPage && !isHomePage && !isMoviesPage)
+      ? "bg-[#0A0A1A]"
+      : "bg-transparent";
+
+  const handleSearchResults = (results) => {
+    console.log("Resultados de búsqueda:", results);
+  };
 
   return (
     <nav
@@ -59,8 +63,11 @@ const RealNavbar = () => {
           <Link to={"/"}>vidaria</Link>
         </h1>
 
-        {/* Opciones de navegación centradas */}
-        <div className={`hidden ${isMobile ? 'flex' : 'md:flex'} flex-1 justify-center space-x-6`}>
+        <div
+          className={`hidden ${
+            isMobile ? "flex" : "md:flex"
+          } flex-1 justify-center space-x-6`}
+        >
           <a href="/" className="hover:text-gray-400">
             Home
           </a>
@@ -72,18 +79,30 @@ const RealNavbar = () => {
           </a>
         </div>
 
-        {!isMobile && (
-          <div className="flex space-x-4">
-            <a
-              onClick={handleLogout}
-              className="cursor-pointer hover:text-gray-400"
-            >
-              <GrLogout size={24} />
-            </a>
-          </div>
-        )}
+        {/* Componente de búsqueda */}
+        {/* Componente de búsqueda */}
+        <div className="flex items-center space-x-3">
+          <Search onResults={handleSearchResults} />
 
-        {/* Botón de menú para móviles */}
+          {/* Icono de Watchlist */}
+          <Link
+            to="/watchlist"
+            className="flex pr-[1.4rem] items-center hover:text-red-400"
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <FaBookmark size={24} />
+          </Link>
+
+          {/* Botón de logout */}
+          <a
+            onClick={handleLogout}
+            className="flex items-center cursor-pointer hover:text-gray-400"
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <GrLogout size={24} />
+          </a>
+        </div>
+
         <button
           className="md:hidden focus:outline-none"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -92,7 +111,6 @@ const RealNavbar = () => {
         </button>
       </div>
 
-      {/* Menú desplegable para móviles */}
       {isMenuOpen && (
         <div className="md:hidden flex flex-col space-y-2 px-4 pb-4 bg-[#0a0a1a00]">
           <a href="/" className="hover:text-gray-400">
@@ -104,9 +122,12 @@ const RealNavbar = () => {
           <a href="/series" className="hover:text-gray-400">
             TV Shows
           </a>
-
-          {/* Botones separados en la parte inferior derecha */}
           <div className="flex flex-col items-end mt-4 space-y-2">
+            {/* Icono de Watchlist en menú desplegable */}
+            <Link to="/watchlist" className="hover:text-gray-400">
+              <FaBookmark size={24} />
+            </Link>
+
             <a
               onClick={handleLogout}
               className="cursor-pointer hover:text-gray-400"

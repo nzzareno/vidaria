@@ -104,17 +104,27 @@ export const deleteMovie = async (id) => {
 };
 
 export const searchMovies = async (filters = {}) => {
+  const params = new URLSearchParams(filters).toString();
   try {
-    const response = await fetch(
-      `${API_URL}/search?${new URLSearchParams(filters).toString()}`
-    );
-    return checkResponse(response);
+    const response = await fetch(`${API_URL}/search?${params}`);
+    const data = await checkResponse(response);
+
+    // Add media_type to each movie result
+    if (data && data.content) {
+      return {
+        ...data,
+        content: data.content.map((movie) => ({
+          ...movie,
+          media_type: "movie",
+        })),
+      };
+    }
+    return { content: [] };
   } catch (error) {
-    console.error("Failed to search movies:", error);
-    return [];
+    console.error("Error fetching movies:", error);
+    return { content: [] };
   }
 };
-
 export const getFeaturedMovies = async (selectedMovieNames) => {
   try {
     const response = await fetch(

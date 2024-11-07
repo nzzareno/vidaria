@@ -19,6 +19,7 @@ export const ModalProvider = ({ children }) => {
     password: "",
   });
   const [formErrors, setFormErrors] = useState({});
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
   const dispatch = useDispatch();
 
   const handleOpenModal = (type) => {
@@ -44,6 +45,8 @@ export const ModalProvider = ({ children }) => {
         setFormErrors,
         formData,
         setFormData,
+        isInWatchlist,
+        setIsInWatchlist,
       }}
     >
       {children}

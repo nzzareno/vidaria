@@ -17,6 +17,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Series from "./pages/Series";
 import NotFound from "./components/NotFound";
+import Watchlist from "./pages/Watchlist";
 
 function App() {
   return (
@@ -83,6 +84,10 @@ function AppContent() {
             </PrivateRoute>
           }
         />
+
+        <Route path="/404" element={<NotFound />} />
+
+        <Route path="/watchlist" element={<Watchlist />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

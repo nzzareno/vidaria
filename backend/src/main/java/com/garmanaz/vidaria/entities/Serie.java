@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -53,8 +54,12 @@ public class Serie {
     @JsonManagedReference
     private List<Season> seasons;
 
+
     @Column(length = 3000)
     private String trailer;
     private String status;
+
+    public Serie(Long serieId, Object o, Object o1) {
+    }
 }
 

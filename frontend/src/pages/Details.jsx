@@ -245,10 +245,17 @@ const Details = () => {
   };
 
   const handleSimilarClick = (item) => {
-    const itemType = item.media_type || (item.title ? "movies" : "series");
-    navigate(`/${itemType}/${item.id}`, { state: { type: itemType } });
+    // Asegurarse de que el tipo es correcto. Si media_type no está, usar el contexto de la página.
+    const itemType = item.media_type || (isSeries ? "series" : "movies");
+    
+    // Si el item es una serie y estamos en la vista de series, navega como serie.
+    if (itemType === "tv" || isSeries) {
+      navigate(`/series/${item.id}`, { state: { type: "series" } });
+    } else {
+      // Si es una película, navega a la vista de películas.
+      navigate(`/movies/${item.id}`, { state: { type: "movies" } });
+    }
   };
-
   const formatReviewContent = (content) => {
     content = content.replace(/\*\*\*(.*?)\*\*\*/g, "<i>$1</i>");
     content = content.replace(/\*(.*?)\*/g, "<b>$1</b>");
@@ -326,15 +333,14 @@ const Details = () => {
                 <div className="lg:col-span-2 space-y-6 w-full">
                   <div className="flex flex-col lg:flex-row items-start space-x-0 lg:space-x-8 space-y-6 lg:space-y-0">
                     <motion.img
-                      src={adjustImageQuality(
-                        details?.cover ||
-                          details?.poster ||
-                          "https://image.tmdb.org/t/p/w500" +
-                            details?.poster_path ||
-                          "https://image.tmdb.org/t/p/w500" +
-                            details?.backdrop_path,
-                        "original"
-                      )}
+                      src={
+                        adjustImageQuality(
+                          details?.cover || details?.poster,
+                          "original"
+                        ) ||
+                        `https://image.tmdb.org/t/p/original${details?.poster_path}` ||
+                        `https://image.tmdb.org/t/p/original${details?.backdrop_path}`
+                      }
                       alt={details?.title}
                       className="w-56 h-80 lg:w-[20rem] lg:h-full rounded-lg object-cover shadow-lg"
                       transition={{ duration: 0.3 }}
@@ -523,11 +529,12 @@ const Details = () => {
                       const releaseYear = item.release_date
                         ? new Date(item.release_date).getFullYear()
                         : "";
+                        console.log(item)
                       const imageUrl = item.backdrop_path
                         ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
                         : item.poster_path
                         ? `https://image.tmdb.org/t/p/original${item.poster_path}`
-                        : null;
+                        : item.background;
                       if (!imageUrl) return null;
                       return (
                         <motion.div

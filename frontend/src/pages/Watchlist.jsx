@@ -4,9 +4,10 @@ import {
   getWatchlist,
   removeFromWatchlist,
   clearWatchlist as clearWatchlistService,
+  fetchSerie,
 } from "../services/detailsService";
 import { useNavigate } from "react-router-dom";
-import { FaHeart, FaHeartBroken } from "react-icons/fa";
+import { FaTrash } from "react-icons/fa";
 import { motion } from "framer-motion";
 import RealNavbar from "../components/RealNavbar";
 import ModalContext from "../context/ModalContext";
@@ -14,9 +15,9 @@ import "../Watchlist.css";
 
 const Watchlist = () => {
   const [watchlist, setWatchlist] = useState([]);
+  const [formattedWatchlist, setFormattedWatchlist] = useState([]);
   const navigate = useNavigate();
   const { isInWatchlist, setIsInWatchlist } = useContext(ModalContext);
-  const [isBroken, setIsBroken] = useState(false);
 
   const handleRemoveItem = async (item) => {
     try {
@@ -81,11 +82,52 @@ const Watchlist = () => {
     fetchWatchlist();
   }, [isInWatchlist]);
 
+  // Función para formatear la fecha de cada ítem
+
+  const formatDate = async (item) => {
+    if (item.movie) {
+      return new Date(
+        item.movie.releaseDate || item.movie.release_date
+      ).getFullYear();
+    } else if (item.serie) {
+      const startYear = new Date(
+        item.serie.first_air_date || item.serie.release_date
+      ).getFullYear();
+      const endYear = await fetchSerie(item.serie.id).then((response) =>
+        new Date(response.last_air_date).getFullYear()
+      );
+
+      console.log("startYear", startYear);
+      console.log("endYear", endYear);
+
+      return startYear === endYear
+        ? `${startYear}`
+        : `${startYear} - ${endYear}`;
+    }
+
+    return "N/A";
+  };
+
+  // Efecto para formatear las fechas de la watchlist
+  useEffect(() => {
+    const formatWatchlistDates = async () => {
+      const formatted = await Promise.all(
+        watchlist.map(async (item) => {
+          const date = await formatDate(item);
+          return { ...item, formattedDate: date };
+        })
+      );
+      setFormattedWatchlist(formatted);
+    };
+
+    formatWatchlistDates();
+  }, [watchlist]);
+
   return (
     <>
       <RealNavbar />
       <motion.div
-        className="p-6 min-h-screen bg-gray-800 flex flex-col items-center"
+        className="p-6 min-h-screen bg-[#0A0A1A] flex flex-col items-center"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
@@ -100,11 +142,11 @@ const Watchlist = () => {
           My Watchlist
         </motion.h2>
 
-        {watchlist.length > 0 ? (
+        {formattedWatchlist.length > 0 ? (
           <>
             <motion.button
               onClick={handleClearWatchlist}
-              className="mb-8 px-4 py-2 bg-red-600 text-white font-semibold rounded hover:bg-red-700 transition"
+              className="mb-8 px-4 py-2 bg-red-700 text-white font-semibold rounded hover:bg-red-600 transition"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
@@ -112,7 +154,7 @@ const Watchlist = () => {
               Clear Watchlist
             </motion.button>
             <motion.div
-              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-5xl"
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 w-full max-w-7xl"
               initial="hidden"
               animate="visible"
               variants={{
@@ -127,50 +169,47 @@ const Watchlist = () => {
                 },
               }}
             >
-              {watchlist.map((item) => {
-                return (
-                  <motion.div
-                    key={item.id}
-                    className="relative bg-gray-900 p-4 rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() =>
-                      navigate(
-                        `/${item.movie ? "movies" : "series"}/${
-                          item.movie?.id || item.serie?.id
-                        }`
-                      )
-                    }
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <img
-                      src={`https://image.tmdb.org/t/p/w300${
-                        item.movie?.cover || item.serie?.poster
-                      }`}
-                      alt={item.movie?.title || item.serie?.title || "No title"}
-                      className="w-full h-48 object-cover rounded-lg shadow-lg"
-                    />
-                    <div className="flex items-center justify-between mt-4 text-white">
-                      <h3 className="text-md font-semibold truncate">
-                        {item.movie?.title || item.serie?.title || "No title"}
-                      </h3>
-                      <span
-                        className="cursor-pointer transition-transform duration-300"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsBroken(true);
-                          handleRemoveItem(item);
-                        }}
-                      >
-                        {isBroken ? (
-                          <FaHeartBroken className="text-red-500 hover:text-red-700 transition-all duration-300" />
-                        ) : (
-                          <FaHeart className="text-red-500 hover:text-red-700 transition-all duration-300" />
-                        )}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {formattedWatchlist.map((item) => (
+  <motion.div
+    key={item.id}
+    className="relative bg-[#0A0A1A] p-2 rounded-lg cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
+    onClick={() =>
+      navigate(
+        `/${item.movie ? "movies" : "series"}/${
+          item.movie?.id || item.serie?.id
+        }`
+      )
+    }
+  >
+    <img
+      src={`https://image.tmdb.org/t/p/original${
+        item.movie?.cover || item.serie?.poster
+      }`}
+      alt={item.movie?.title || item.serie?.title || "No title"}
+      className="w-full h-64 object-cover rounded-lg shadow-lg"
+    />
+    <div className="flex flex-col items-start justify-between mt-2 text-white relative">
+      <h3 className="text-sm font-semibold truncate w-full">
+        {item.movie?.title || item.serie?.title || "No title"}
+      </h3>
+      <span className="text-sm font-semibold text-gray-300 mt-1">
+        {item.formattedDate}
+      </span>
+      
+      {/* Icono de Basura en la esquina superior derecha */}
+      <button
+        className="absolute top-2 right-2 p-1 text-red-500 bg-gray-900 bg-opacity-75 hover:bg-red-500 hover:text-white rounded-full transition duration-300"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleRemoveItem(item);
+        }}
+      >
+        <FaTrash className="text-lg" />
+      </button>
+    </div>
+  </motion.div>
+))}
+
             </motion.div>
           </>
         ) : (

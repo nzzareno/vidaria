@@ -354,73 +354,33 @@ export const fetchSimilar = async (id, type) => {
 
     const data = await response.json();
 
-    // Filtramos para que solo pasen los elementos que tienen todos los datos necesarios
+    // Filtrar para asegurar que solo se incluyan elementos con `backdrop_path` o `poster_path`
     const similarContent = data.results
       .filter(
         (item) =>
-          item.poster_path &&
-          item.backdrop_path &&
-          item.overview &&
-          (item.vote_average || item.rating) &&
-          item.release_date &&
+          (item.backdrop_path && item.poster_path) &&
           (item.title || item.name) &&
-          item.id
+          (item.release_date || item.first_air_date)
       )
       .map((item) => ({
         ...item,
-        poster_path: `https://image.tmdb.org/t/p/original${item.poster_path}`,
-        backdrop_path: `https://image.tmdb.org/t/p/original${item.backdrop_path}`,
+        poster_path: item.poster_path
+          ? `https://image.tmdb.org/t/p/original${item.poster_path}`
+          : null,
+        backdrop_path: item.backdrop_path
+          ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
+          : null,
         title: item.title || item.name,
-        release_date: item.release_date,
-        overview: item.overview,
-        vote_average: item.vote_average,
+        release_date: item.release_date || item.first_air_date,
       }));
 
-    // Obtener detalles adicionales de cada elemento similar, incluyendo seasons, episodes, y cast
-    const detailedSimilarContent = await Promise.all(
-      similarContent.map(async (item) => {
-        try {
-          const detailsUrl = `${VITE_TMDB_DETAILS}${type}/${item.id}?api_key=${API_KEY}&language=en-US`;
-          const creditsUrl = `${VITE_TMDB_DETAILS}${type}/${item.id}/credits?api_key=${API_KEY}&language=en-US`;
-
-          const [detailsResponse, creditsResponse] = await Promise.all([
-            fetch(detailsUrl),
-            fetch(creditsUrl),
-          ]);
-
-          if (!detailsResponse.ok || !creditsResponse.ok) {
-            console.warn(
-              `Failed to fetch additional details for ${type} with ID ${item.id}`
-            );
-            return null;
-          }
-
-          const detailsData = await detailsResponse.json();
-          const creditsData = await creditsResponse.json();
-
-          return {
-            ...item,
-            number_of_seasons: detailsData.number_of_seasons || "N/A",
-            number_of_episodes: detailsData.number_of_episodes || "N/A",
-            cast: creditsData.cast.slice(0, 5).map((actor) => actor.name), // Primeros 5 actores
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching additional details for ${type} with ID ${item.id}:`,
-            error
-          );
-          return null;
-        }
-      })
-    );
-
-    // Filtramos para eliminar elementos nulos en caso de errores en la obtención de detalles adicionales
-    return detailedSimilarContent.filter((item) => item !== null);
+    return similarContent;
   } catch (error) {
     console.error(`Error fetching ${type} similar content:`, error);
     return [];
   }
 };
+
 
 export const fetchMovieIfNotInDB = async (id, type) => {
   const url =

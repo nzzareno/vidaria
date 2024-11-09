@@ -17,7 +17,7 @@ const IndexLayout = () => {
   const featuredSeries = useSelector((state) => state.series.featuredSeries);
   const featuredMovies = useSelector((state) => state.movies.featuredMovies);
   const dispatch = useDispatch();
-  const { setIsModalOpen } = useContext(ModalContext);
+  const { handleOpenModal } = useContext(ModalContext);
 
   useEffect(() => {
     const fetchMovies = async () => {
@@ -71,7 +71,6 @@ const IndexLayout = () => {
       <Navbar />
       <header className="font-maxSans">
         <div className="relative flex bg-black min-h-screen w-full">
-          {/* Imagen con efecto de fade-in */}
           <motion.img
             className="absolute top-0 left-0 h-full w-full object-cover object-center"
             src={wppimgmovies}
@@ -80,32 +79,31 @@ const IndexLayout = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 2 }}
           />
-  
-          {/* Overlay con degradado oscuro desde abajo hacia arriba */}
+
           <div className="absolute backdrop-blur-[2px] inset-0 bg-gradient-to-t from-[#0A0A1A] via-black/70 to-[rgba(0,0,0,0.14)]"></div>
-  
-          {/* Contenido encima de la imagen */}
+
           <div className="relative z-10 flex flex-col justify-center items-center text-center w-full cursor-default px-4 sm:px-8">
-            <h1 className="font-bold font-maxSans text-5xl sm:text-6xl md:text-7xl lg:text-9xl text-white transition duration-300 ease-in-out transform -mb-3 sm:-mb-5">
+            <h1 className="font-bold font-maxSans text-4xl sm:text-5xl md:text-6xl lg:text-8xl text-white -mb-2 sm:-mb-3">
               vidaria
             </h1>
-            <p className="text-lg sm:text-2xl md:text-3xl lg:text-3xl font-bold text-white">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-white">
               DISCOVER MORE, FOR LESS
             </p>
-  
+
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="btn py-2 sm:py-3 px-3 sm:px-4 bg-[rgb(0,43,231)] mt-4 text-white font-bold rounded-xl border-transparent transition duration-100 ease-in transform hover:bg-[rgb(0,30,180)]"
+              onClick={() => {
+                handleOpenModal("subscribe");
+              }}
+              className="btn py-2 px-4 sm:py-3 sm:px-5 bg-[rgb(0,43,231)] mt-4 text-white font-bold rounded-xl transition duration-150 hover:bg-[rgb(0,30,180)]"
             >
               START YOUR JOURNEY NOW
             </button>
           </div>
         </div>
       </header>
-  
-      <div className="px-4 sm:px-8">
-        {/* Grid para películas y series */}
-        <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+
+      <div className="px-4 sm:px-8 my-8">
+        <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-1">
           <WatchFilmList movies={featuredMovies} />
           <WatchSerieList series={featuredSeries} />
         </div>

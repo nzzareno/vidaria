@@ -41,18 +41,11 @@ const RealNavbar = () => {
     location.pathname.startsWith("/movies/") ||
     location.pathname.startsWith("/series/");
   const isHomePage = location.pathname === "/home";
-  const isMoviesPage = location.pathname === "/movies";
 
   const navbarStyle =
-    isMobile ||
-    (isScrolled && isDetailsPage) ||
-    (!isDetailsPage && !isHomePage && !isMoviesPage)
+    isMobile || (isScrolled && isDetailsPage) || (!isDetailsPage && !isHomePage)
       ? "bg-[#0A0A1A]"
       : "bg-transparent";
-
-  const handleSearchResults = (results) => {
-    console.log("Resultados de búsqueda:", results);
-  };
 
   return (
     <nav
@@ -82,7 +75,7 @@ const RealNavbar = () => {
         {/* Componente de búsqueda */}
         {/* Componente de búsqueda */}
         <div className="flex items-center space-x-3">
-          <Search onResults={handleSearchResults} />
+          <Search />
 
           {/* Icono de Watchlist */}
           <Link

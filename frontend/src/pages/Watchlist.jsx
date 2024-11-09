@@ -82,8 +82,6 @@ const Watchlist = () => {
     fetchWatchlist();
   }, [isInWatchlist]);
 
-  // Función para formatear la fecha de cada ítem
-
   const formatDate = async (item) => {
     if (item.movie) {
       return new Date(
@@ -108,7 +106,6 @@ const Watchlist = () => {
     return "N/A";
   };
 
-  // Efecto para formatear las fechas de la watchlist
   useEffect(() => {
     const formatWatchlistDates = async () => {
       const formatted = await Promise.all(
@@ -170,46 +167,45 @@ const Watchlist = () => {
               }}
             >
               {formattedWatchlist.map((item) => (
-  <motion.div
-    key={item.id}
-    className="relative bg-[#0A0A1A] p-2 rounded-lg cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
-    onClick={() =>
-      navigate(
-        `/${item.movie ? "movies" : "series"}/${
-          item.movie?.id || item.serie?.id
-        }`
-      )
-    }
-  >
-    <img
-      src={`https://image.tmdb.org/t/p/original${
-        item.movie?.cover || item.serie?.poster
-      }`}
-      alt={item.movie?.title || item.serie?.title || "No title"}
-      className="w-full h-64 object-cover rounded-lg shadow-lg"
-    />
-    <div className="flex flex-col items-start justify-between mt-2 text-white relative">
-      <h3 className="text-sm font-semibold truncate w-full">
-        {item.movie?.title || item.serie?.title || "No title"}
-      </h3>
-      <span className="text-sm font-semibold text-gray-300 mt-1">
-        {item.formattedDate}
-      </span>
-      
-      {/* Icono de Basura en la esquina superior derecha */}
-      <button
-        className="absolute top-2 right-2 p-1 text-red-500 bg-gray-900 bg-opacity-75 hover:bg-red-500 hover:text-white rounded-full transition duration-300"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleRemoveItem(item);
-        }}
-      >
-        <FaTrash className="text-lg" />
-      </button>
-    </div>
-  </motion.div>
-))}
+                <motion.div
+                  key={item.id}
+                  className="relative bg-[#0A0A1A] p-2 rounded-lg cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
+                  onClick={() =>
+                    navigate(
+                      `/${item.movie ? "movies" : "series"}/${
+                        item.movie?.id || item.serie?.id
+                      }`
+                    )
+                  }
+                >
+                  <img
+                    src={`https://image.tmdb.org/t/p/original${
+                      item.movie?.cover || item.serie?.poster
+                    }`}
+                    alt={item.movie?.title || item.serie?.title || "No title"}
+                    className="w-full h-64 object-cover rounded-lg shadow-lg"
+                  />
+                  <div className="flex flex-col items-start justify-between mt-2 text-white relative">
+                    <h3 className="text-sm font-semibold truncate w-full">
+                      {item.movie?.title || item.serie?.title || "No title"}
+                    </h3>
+                    <span className="text-sm font-semibold text-gray-300 mt-1">
+                      {item.formattedDate}
+                    </span>
 
+                    {/* Icono de Basura en la esquina superior derecha */}
+                    <button
+                      className="absolute  bottom-0 right-0 p-1 text-red-500 bg-gray-900 bg-opacity-75 hover:bg-red-500 hover:text-white rounded-full transition duration-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveItem(item);
+                      }}
+                    >
+                      <FaTrash className="text-lg" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
             </motion.div>
           </>
         ) : (

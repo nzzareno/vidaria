@@ -230,7 +230,9 @@ const Navbar = () => {
                 onChange={handleInputChange}
               />
             </div>
-            <p className="text-red-500 text-sm mt-1 h-4">{formErrors.username}</p>
+            <p className="text-red-500 text-sm mt-1 h-4">
+              {formErrors.username}
+            </p>
             <button className="w-full bg-white hover:bg-gray-300 font-montserrat text-black p-2 rounded-lg transition duration-200 font-bold mt-2">
               Sign In
             </button>
@@ -251,47 +253,48 @@ const Navbar = () => {
           transition={{ duration: 0.3 }}
           className="relative font-montserrat"
         >
-          <form className="mt-4" onSubmit={handleRegister}>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Username"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-indigo-500"
-                name="username"
-                required
-                value={formData.username}
-                onChange={handleInputChange}
-                ref={usernameInputRef}
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="email"
-                placeholder="Email"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-indigo-500"
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-              />
-              <p className="text-red-500 text-sm mt-1 h-4">{formErrors.email}</p>
-            </div>
-            <div className="mb-6">
-              <input
-                type="password"
-                placeholder="Password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-indigo-500"
-                name="password"
-                required
-                value={formData.password}
-                onChange={handleInputChange}
-              />
-              <p className="text-red-500 text-sm mt-1 h-4">{formErrors.username}</p>
-            </div>
-            <button className="w-full bg-white text-black px-3 py-2 rounded-lg transition duration-200 hover:bg-green-600 mt-2">
-              Subscribe
-            </button>
-          </form>
+       <form className="mt-4" onSubmit={handleRegister}>
+  <div className="mb-4"> {/* Cambié mb-6 a mb-4 para consistencia */}
+    <input
+      type="text"
+      placeholder="Username"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-indigo-500"
+      name="username"
+      required
+      value={formData.username}
+      onChange={handleInputChange}
+      ref={usernameInputRef}
+    />
+  </div>
+  <div className="-mb-[0.20rem]"> {/* Agregué mb-4 para consistencia */}
+    <input
+      type="email"
+      placeholder="Email"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-indigo-500"
+      name="email"
+      required
+      value={formData.email}
+      onChange={handleInputChange}
+    />
+    <p className="text-red-500 text-sm mt-1 h-4">{formErrors.email}</p>
+  </div>
+  <div className="mb-4"> {/* Cambié mb-6 a mb-4 para consistencia */}
+    <input
+      type="password"
+      placeholder="Password"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-indigo-500"
+      name="password"
+      required
+      value={formData.password}
+      onChange={handleInputChange}
+    />
+    <p className="text-red-500 text-sm mt-1 h-4">{formErrors.username}</p>
+  </div>
+  <button className="w-full font-bold bg-white text-black px-3 py-2 rounded-lg transition duration-200 hover:bg-green-600 mt-[.2rem]">
+    Subscribe
+  </button>
+</form>
+
         </motion.div>
       ),
     };

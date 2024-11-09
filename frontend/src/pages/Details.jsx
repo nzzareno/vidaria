@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   fetchMovieDetails,
@@ -20,13 +20,13 @@ import { adjustImageQuality } from "../utils/sliderSettings";
 import { useDispatch } from "react-redux";
 import { setMovieTagline } from "../redux/movieSlice";
 import RealNavbar from "../components/RealNavbar";
-import Slider from "react-slick";
-import { NextArrow, PrevArrow } from "../utils/sliderUtils";
 import { motion } from "framer-motion";
 import Modal from "../utils/Modal";
 import { fetchUserData } from "../services/authService";
-import { FaPlus, FaCheck } from "react-icons/fa";
 import ModalContext from "../context/ModalContext";
+import SimilarContentSlider from "../components/SimilarContentSlider";
+import Reviews from "../components/Reviews";
+import DetailsHeader from "../components/DetailsHeader";
 
 const adultVerification = (adult) => (adult ? "18+" : "13+");
 const formatRating = (rating) => (rating ? rating.toFixed(1) : "N/A");
@@ -51,13 +51,10 @@ const Details = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState("");
   const [selectedReview, setSelectedReview] = useState({});
-  const [expandedReviews, setExpandedReviews] = useState({});
-  const [showMoreOptions, setShowMoreOptions] = useState({});
   const [streamingLinks, setStreamingLinks] = useState([]);
 
   const { isInWatchlist, setIsInWatchlist } = useContext(ModalContext);
   const dispatch = useDispatch();
-  const reviewRefs = useRef([]);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -138,9 +135,9 @@ const Details = () => {
                       data.releaseDate
                   ).getFullYear()
                 : "Unknown",
-            numberOfSeasons: data.numberOfSeasons || (isSeries ? "N/A" : null),
+            numberOfSeasons: data.numberOfSeasons || data.number_of_seasons,
             numberOfEpisodes:
-              data.numberOfEpisodes || (isSeries ? "N/A" : null),
+              data.numberOfEpisodes || data.number_of_episodes || "Unknown",
           });
 
           dispatch(setMovieTagline(taglineData));
@@ -207,21 +204,6 @@ const Details = () => {
     }
   };
 
-  useEffect(() => {
-    reviewRefs.current.forEach((ref, index) => {
-      if (ref && ref.scrollHeight > ref.clientHeight) {
-        setShowMoreOptions((prev) => ({ ...prev, [index]: true }));
-      }
-    });
-  }, [reviews]);
-
-  const toggleExpandReview = (index) => {
-    setExpandedReviews((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
-  };
-
   const openModal = (review) => {
     setModalContent(formatReviewContent(review.content));
     setSelectedReview({
@@ -231,23 +213,10 @@ const Details = () => {
     setModalOpen(true);
   };
 
-  const sliderSettings = {
-    dots: false,
-    infinite: true,
-    speed: 500,
-    autoplay: false,
-    arrows: true,
-    draggable: false,
-    slidesToShow: 4,
-    slidesToScroll: 4,
-    prevArrow: <PrevArrow />,
-    nextArrow: <NextArrow />,
-  };
-
   const handleSimilarClick = (item) => {
     // Asegurarse de que el tipo es correcto. Si media_type no está, usar el contexto de la página.
     const itemType = item.media_type || (isSeries ? "series" : "movies");
-    
+
     // Si el item es una serie y estamos en la vista de series, navega como serie.
     if (itemType === "tv" || isSeries) {
       navigate(`/series/${item.id}`, { state: { type: "series" } });
@@ -329,241 +298,37 @@ const Details = () => {
             }}
           >
             <div className="relative px-4 lg:px-8 py-36 mx-auto z-20 max-w-full">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 w-full">
-                <div className="lg:col-span-2 space-y-6 w-full">
-                  <div className="flex flex-col lg:flex-row items-start space-x-0 lg:space-x-8 space-y-6 lg:space-y-0">
-                    <motion.img
-                      src={
-                        adjustImageQuality(
-                          details?.cover || details?.poster,
-                          "original"
-                        ) ||
-                        `https://image.tmdb.org/t/p/original${details?.poster_path}` ||
-                        `https://image.tmdb.org/t/p/original${details?.backdrop_path}`
-                      }
-                      alt={details?.title}
-                      className="w-56 h-80 lg:w-[20rem] lg:h-full rounded-lg object-cover shadow-lg"
-                      transition={{ duration: 0.3 }}
-                    />
-                    <div className="space-y-3 max-w-4xl">
-                      <motion.h1 className="text-4xl lg:text-5xl font-bold leading-tight">
-                        {details?.title ||
-                          details?.name ||
-                          "Title not available"}
-                      </motion.h1>
-                      <div className="flex items-center space-x-4 text-md lg:text-lg">
-                        <span>
-                          {isSeries
-                            ? details?.releaseYear ===
-                              details?.last_air_date.slice(0, 4)
-                              ? details?.releaseYear
-                              : `${
-                                  details?.releaseYear
-                                } - ${details?.last_air_date.slice(0, 4)}`
-                            : details?.releaseYear}
-                        </span>
-                        {isSeries && (
-                          <span>
-                            {details?.numberOfSeasons} Seasons,{" "}
-                            {details?.numberOfEpisodes} Episodes
-                          </span>
-                        )}
-                        <span className="text-yellow-300">
-                          {formatRating(
-                            details?.rating || details?.vote_average
-                          )}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-sm lg:text-base">
-                        {(details?.genres || details?.genre_id)?.map(
-                          (genre) => (
-                            <span
-                              key={genre.id || genre}
-                              className="px-3 mb-2 py-1 bg-gray-800 rounded"
-                            >
-                              {genre.name || genre}
-                            </span>
-                          )
-                        )}
-                      </div>
-                      <div className="flex space-x-4 mt-4">
-                        <motion.button
-                          className="bg-white text-black px-10 py-2 text-sm lg:text-base font-medium rounded hover:bg-gray-200"
-                          onClick={() =>
-                            window.open(details?.trailer, "_blank")
-                          }
-                        >
-                          Watch Trailer
-                        </motion.button>
-                        <motion.button
-                          onClick={
-                            isInWatchlist
-                              ? handleRemoveFromWatchlist
-                              : handleAddToWatchlist
-                          }
-                          className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-400 hover:border-white transition duration-200"
-                          style={{
-                            backgroundColor: isInWatchlist
-                              ? "#1db954"
-                              : "transparent",
-                          }}
-                          title={
-                            isInWatchlist
-                              ? "Remove from Watchlist"
-                              : "Add to Watchlist"
-                          }
-                        >
-                          {isInWatchlist ? (
-                            <FaCheck className="text-white text-lg" />
-                          ) : (
-                            <FaPlus className="text-white text-lg" />
-                          )}
-                        </motion.button>
-                      </div>
-
-                      {streamingLinks.length > 0 && (
-                        <div className="mt-4">
-                          {renderStreamingLinks(streamingLinks)}
-                        </div>
-                      )}
-
-                      <p className="text-md lg:text-base leading-relaxed">
-                        {details?.description ||
-                          details?.overview ||
-                          "Description not available"}
-                      </p>
-                      {tagline && (
-                        <p className="text-lg italic font-semibold text-gray-300 mt-4">
-                          &quot;{tagline}&quot;
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="-mt-4 lg:mt-0">
-                  <div className="font-bold text-base lg:text-lg mb-2">
-                    Director:
-                  </div>
-                  <div>{director || "Unknown"}</div>
-                  {cast.length > 0 && (
-                    <>
-                      <div className="font-bold text-base lg:text-lg mt-4 mb-2">
-                        Starring:
-                      </div>
-                      <div className="flex flex-wrap max-w-full overflow-x-auto">
-                        {cast.map((actor, index) => (
-                          <span key={actor.id} className="whitespace-pre-wrap">
-                            {actor.name}
-                            {index < cast.length - 1 && ", "}
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  <div className="mt-4">
-                    <span className="font-semibold">Classification: </span>
-                    {adultVerification(details?.adult)}
-                  </div>
-                  <div className="mt-2">
-                    <span className="font-semibold">Audio Languages: </span>
-                    {audioLanguages.join(", ") || "N/A"}
-                  </div>
-                </div>
-              </div>
+              <DetailsHeader
+                details={details}
+                isSeries={isSeries}
+                formatRating={formatRating}
+                handleAddToWatchlist={handleAddToWatchlist}
+                handleRemoveFromWatchlist={handleRemoveFromWatchlist}
+                streamingLinks={streamingLinks}
+                renderStreamingLinks={renderStreamingLinks}
+                tagline={tagline}
+                director={director}
+                audioLanguages={audioLanguages}
+                adultVerification={adultVerification}
+                cast={cast}
+                isInWatchlist={isInWatchlist}
+                setIsInWatchlist={setIsInWatchlist}
+              />
 
               {reviews.length > 0 && (
-                <div className="w-full py-10 mt-10">
-                  <h2 className="text-xl lg:text-2xl font-bold mb-6">
-                    Reviews
-                  </h2>
-                  <div className="space-y-4">
-                    {reviews.map((review, index) => (
-                      <div
-                        key={index}
-                        onClick={() => openModal(review)}
-                        className="w-full p-6 rounded-lg shadow-lg bg-[#0A0A1A] text-white relative flex flex-col items-start cursor-pointer"
-                      >
-                        <div className="flex items-center space-x-3 mb-2 w-full">
-                          <img
-                            src={review.avatar}
-                            alt="User"
-                            className="w-10 h-10 rounded-full"
-                          />
-                          <span className="font-bold">
-                            {review.author || "Anonymous"}
-                          </span>
-                        </div>
-                        <p
-                          ref={(el) => (reviewRefs.current[index] = el)}
-                          className={`text-white ${
-                            expandedReviews[index] ? "" : "line-clamp-3"
-                          }`}
-                        >
-                          <span
-                            dangerouslySetInnerHTML={{
-                              __html: formatReviewContent(review.content),
-                            }}
-                          ></span>
-                        </p>
-                        {showMoreOptions[index] && (
-                          <button
-                            onClick={() => toggleExpandReview(index)}
-                            className="text-blue-500 hover:text-blue-700 mt-2"
-                          >
-                            {expandedReviews[index] ? "View Less" : "View More"}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <Reviews
+                  reviews={reviews}
+                  openModal={openModal}
+                  formatReviewContent={formatReviewContent}
+                />
               )}
 
               {similarContent.length > 0 && (
-                <div className="w-full py-10 mt-10">
-                  <h2 className="text-xl lg:text-2xl font-bold mb-6">
-                    Maybe you like it too
-                  </h2>
-                  <Slider {...sliderSettings} className="overflow-hidden">
-                    {similarContent.map((item) => {
-                      const releaseYear = item.release_date
-                        ? new Date(item.release_date).getFullYear()
-                        : "";
-                        console.log(item)
-                      const imageUrl = item.backdrop_path
-                        ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
-                        : item.poster_path
-                        ? `https://image.tmdb.org/t/p/original${item.poster_path}`
-                        : item.background;
-                      if (!imageUrl) return null;
-                      return (
-                        <motion.div
-                          key={item.id}
-                          className="w-32 h-64 lg:w-36 flex-shrink-0 p-2 relative"
-                          onClick={() => handleSimilarClick(item)}
-                        >
-                          <motion.img
-                            src={imageUrl}
-                            alt={item.title || item.name}
-                            className="w-full h-full object-cover rounded-lg"
-                            style={{ transition: "box-shadow 0.01s linear" }}
-                          />
-                          <motion.div
-                            className="absolute inset-2 bg-black cursor-pointer bg-opacity-60 rounded-lg flex items-center justify-center opacity-100 transition-opacity duration-300"
-                            initial={{ opacity: 1 }}
-                            whileHover={{ opacity: 0.7 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <span className="text-white text-center text-lg font-semibold px-4">
-                              {item.title || item.name}{" "}
-                              {releaseYear && `(${releaseYear})`}
-                            </span>
-                          </motion.div>
-                        </motion.div>
-                      );
-                    })}
-                  </Slider>
-                </div>
+                <SimilarContentSlider
+                  similarContent={similarContent}
+                  handleSimilarClick={handleSimilarClick}
+                  isSeries={isSeries}
+                />
               )}
             </div>
             <Modal

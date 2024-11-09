@@ -111,7 +111,7 @@ const Header = ({
 
   return (
     <motion.header
-      className="relative h-[70vh] md:h-[80vh] w-full mt-16 overflow-hidden"
+      className="relative h-full md:h-[80vh] w-full mt-16 overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -153,7 +153,7 @@ const Header = ({
 
             {allContentLoaded && (
               <motion.div
-                className="absolute bottom-8 left-0 z-10 max-w-lg md:max-w-xl lg:max-w-3xl p-2 text-left"
+                className="absolute bottom-8 left-0 z-20 max-w-lg md:max-w-xl lg:max-w-3xl p-2 text-left"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}

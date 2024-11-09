@@ -5,7 +5,7 @@ import { searchMovies } from "../services/movieService";
 import { searchSeries } from "../services/serieService";
 import { Link } from "react-router-dom";
 
-const Search = ({ onResults }) => {
+const Search = () => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -40,7 +40,7 @@ const Search = ({ onResults }) => {
     const fetchResults = async () => {
       if (!query) {
         setResults([]);
-        onResults([]);
+
         return;
       }
 
@@ -49,7 +49,6 @@ const Search = ({ onResults }) => {
         const series = await searchSeries({ title: query });
         const combinedResults = [...movies.content, ...series.content];
         setResults(combinedResults);
-        onResults(combinedResults);
       } catch (error) {
         console.error("Error fetching search results:", error);
       }
@@ -60,7 +59,7 @@ const Search = ({ onResults }) => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [query, onResults]);
+  }, [query]);
 
   return (
     <div className="relative flex items-center">
@@ -127,46 +126,44 @@ const Search = ({ onResults }) => {
               />
             </div>
             <div className="flex flex-col divide-y divide-slate-950">
-            {results.map((item) => (
-  <Link
-    key={item.id}
-    to={
-      item.media_type === "movie"
-        ? `/movies/${item.id}`
-        : `/series/${item.id}`
-    }
-  >
-    <div
-      className="flex items-center p-3 transition cursor-pointer hover:bg-gray-900 hover:shadow-lg"
-    >
-      <img
-        src={
-          item.poster_path
-            ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
-            : item.background || item.backdrop
-        }
-        alt={item.title}
-        className="w-14 h-14 rounded-md object-cover bg-top bg-contain"  
-      />
-      <div className="ml-4 flex-1">
-        <h3 className="text-white text-sm font-semibold">
-          {item.title || item.name || item.original_title}
-        </h3>
-        <p className="text-gray-500 text-xs">
-          {item.release_date ||
-          item.first_air_date ||
-          item.releaseDate
-            ? new Date(
-                item.release_date ||
-                item.releaseDate ||
-                item.first_air_date
-              ).getFullYear()
-            : new Date(item.first_air_date).getFullYear()}
-        </p>
-      </div>
-    </div>
-  </Link>
-))}
+              {results.map((item) => (
+                <Link
+                  key={item.id}
+                  to={
+                    item.media_type === "movie"
+                      ? `/movies/${item.id}`
+                      : `/series/${item.id}`
+                  }
+                >
+                  <div className="flex items-center p-3 transition cursor-pointer hover:bg-gray-900 hover:shadow-lg">
+                    <img
+                      src={
+                        item.poster_path
+                          ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
+                          : item.background || item.backdrop
+                      }
+                      alt={item.title}
+                      className="w-14 h-14 rounded-md object-cover bg-top bg-contain"
+                    />
+                    <div className="ml-4 flex-1">
+                      <h3 className="text-white text-sm font-semibold">
+                        {item.title || item.name || item.original_title}
+                      </h3>
+                      <p className="text-gray-500 text-xs">
+                        {item.release_date ||
+                        item.first_air_date ||
+                        item.releaseDate
+                          ? new Date(
+                              item.release_date ||
+                                item.releaseDate ||
+                                item.first_air_date
+                            ).getFullYear()
+                          : new Date(item.first_air_date).getFullYear()}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </motion.div>
         )}

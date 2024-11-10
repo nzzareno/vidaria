@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 
 const Home = () => {
   const [popularMovies, setPopularMovies] = useState([]);
+  const [activeHeader, setActiveHeader] = useState(false);
   const [topRatedMovies, setTopRatedMovies] = useState([]);
   const [upcomingMovies, setUpcomingMovies] = useState([]);
   const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
@@ -119,43 +120,23 @@ const Home = () => {
   useEffect(() => {
     const loadAllContent = async () => {
       dispatch(setLoading(true));
-
       try {
-        const [
-          popular,
-          topRated,
-          upcoming,
-          nowPlaying,
-          trending,
-          headerSeriesData,
-          popularSeriesData,
-        ] = await Promise.all([
-          fetchMoviesByCategory("popular", setPopularMovies, 2),
-          fetchMoviesByCategory("top_rated", setTopRatedMovies, 2),
-          fetchMoviesByCategory("upcoming", setUpcomingMovies, 2),
-          fetchMoviesByCategory("now_playing", setNowPlayingMovies, 2),
-          fetchMoviesByCategory("trending", setTrendingMovies, 2),
-          getHeaderSeries(), // Fetch header series
-          getPopularSeries(), // Fetch popular series
-        ]);
+        const [popular, topRated, headerSeriesData, popularSeriesData] =
+          await Promise.all([
+            fetchMoviesByCategory("popular", setPopularMovies, 2),
+            fetchMoviesByCategory("top_rated", setTopRatedMovies, 2),
+            fetchMoviesByCategory("upcoming", setUpcomingMovies, 2),
+            fetchMoviesByCategory("now_playing", setNowPlayingMovies, 2),
+            fetchMoviesByCategory("trending", setTrendingMovies, 2),
+            getHeaderSeries(), // Fetch header series
+            getPopularSeries(), // Fetch popular series
+          ]);
 
-        const allMovies = [
-          ...popular,
-          ...topRated,
-          ...upcoming,
-          ...nowPlaying,
-          ...trending,
-        ];
-        const highPopularityMovies = allMovies.filter(
-          (movie) => movie.rating && movie.rating >= 7.3
-        );
-        const shuffledMovies = highPopularityMovies
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 4);
-        setHeaderMovies(shuffledMovies);
-
+        setHeaderMovies([...popular.slice(0, 5), ...topRated.slice(0, 5)]);
         setHeaderSeries(headerSeriesData); // Set header series
         setPopularSeries(popularSeriesData); // Set popular series
+
+        setActiveHeader(true);
       } catch (error) {
         console.error("Error loading content:", error);
       } finally {
@@ -241,7 +222,7 @@ const Home = () => {
 
   return (
     <>
-      {loading ? (
+      {loading && !activeHeader ? (
         <div className="flex justify-center items-center min-h-screen bg-[#0A0A1A]">
           <RingLoader color="#FF0000" size={200} />
         </div>
@@ -252,6 +233,7 @@ const Home = () => {
             headerMovies={headerMovies}
             headerSeries={headerSeries}
             isCombinedPage={true}
+            activeHeader={activeHeader}
           />
           <div className="space-y-6 px-4 md:px-8 mt-4">
             {renderSliderSection(

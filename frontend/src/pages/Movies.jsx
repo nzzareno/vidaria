@@ -84,7 +84,11 @@ const Movies = () => {
       ) : (
         <div className="min-h-screen overflow-x-hidden transition-colors text-white bg-[#0A0A1A]">
           <RealNavbar />
-          <Header headerMovies={headerMovies} isMoviesPage={true} />{" "}
+          <Header
+            headerMovies={headerMovies}
+            isMoviesPage={true}
+            isCombinedPage={false}
+          />{" "}
           {/* Pasamos las películas seleccionadas */}
           <motion.section
             initial={{ opacity: 0 }}

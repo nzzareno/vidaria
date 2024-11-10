@@ -2,13 +2,15 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
-  useLocation,
+  Navigate,
 } from "react-router-dom";
+import { useSelector } from "react-redux";
 import IndexLayout from "./pages/IndexLayout";
 import Home from "./pages/Home";
 import Movies from "./pages/Movies";
-import Details from "./pages/Details"; // Importa el componente Details
+import Details from "./pages/Details";
 import PrivateRoute from "./utils/PrivateRoute";
+import PublicRoute from "./utils/PublicRoute";
 import { Provider } from "react-redux";
 import store from "./redux/store";
 import Footer from "./components/Footer";
@@ -32,18 +34,41 @@ function App() {
 }
 
 function AppContent() {
-  const location = useLocation();
-
+  const isAuthenticated =
+    useSelector((state) => state.auth.user) || localStorage.getItem("token");
   const hideFooterRoutes = ["/movies/:id", "/series/:id"];
   const shouldShowFooter = !hideFooterRoutes.some((path) =>
-    location.pathname.startsWith(path.split(":")[0])
+    window.location.pathname.startsWith(path.split(":")[0])
   );
 
   return (
     <>
       <Routes>
-        <Route path="/" element={<IndexLayout />} />
+        {/* Ruta raíz: redirige según autenticación sin renderizar previamente el IndexLayout */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/home" replace />
+            ) : (
+              <Navigate to="/index" replace />
+            )
+          }
+        />
 
+        {/* Ruta pública solo para usuarios no autenticados */}
+        <Route
+          path="/index"
+          element={
+            !isAuthenticated ? (
+              <PublicRoute component={IndexLayout} />
+            ) : (
+              <Navigate to="/home" replace />
+            )
+          }
+        />
+
+        {/* Ruta protegida para Home y demás rutas privadas */}
         <Route
           path="/home"
           element={
@@ -86,10 +111,17 @@ function AppContent() {
         />
 
         <Route path="/404" element={<NotFound />} />
+        <Route
+          path="/watchlist"
+          element={
+            <PrivateRoute>
+              <Watchlist />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/watchlist" element={<Watchlist />} />
-
-        <Route path="*" element={<NotFound />} />
+        {/* Redirige cualquier ruta no reconocida a "/index" */}
+        <Route path="*" element={<Navigate to="/index" replace />} />
       </Routes>
 
       {shouldShowFooter && <Footer />}

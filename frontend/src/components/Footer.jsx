@@ -1,14 +1,17 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { fab } from "@fortawesome/free-brands-svg-icons";
+import { motion } from "framer-motion"; // Importa framer-motion
+
 library.add(fab);
 
 const Footer = () => {
   return (
-    <footer
-      className=" text-white bg-[#0A0A1A]
-      
-     text-center p-14"
+    <motion.footer
+      className="text-white bg-[#0A0A1A] text-center p-14"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 3, duration: 1 }} // Retraso de 3 segundos y animación de 1 segundo
     >
       <div className="flex flex-col items-center ">
         <strong className="text-xl">
@@ -50,7 +53,7 @@ const Footer = () => {
           © {new Date().getFullYear()} Vidaria. All Rights Reserved.
         </p>
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 

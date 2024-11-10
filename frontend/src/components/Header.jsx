@@ -12,10 +12,12 @@ const Header = ({
   isSeriesPage = false,
   isMoviesPage = false,
   isCombinedPage = false,
+  activeHeader,
 }) => {
   const [currentMovieIndex, setCurrentMovieIndex] = useState(0);
   const [currentSerieIndex, setCurrentSerieIndex] = useState(0);
   const [currentTagline, setCurrentTagline] = useState("");
+  const [isTaglineLoaded, setIsTaglineLoaded] = useState(false);
   const [allContentLoaded, setAllContentLoaded] = useState(false);
 
   // Determina el contenido actual según la página
@@ -32,7 +34,9 @@ const Header = ({
   const backgroundImage =
     currentContent?.background || currentContent?.backdrop;
 
-  const handleImageLoad = () => setAllContentLoaded(true);
+  const handleImageLoad = () => {
+    setAllContentLoaded(true);
+  };
 
   useEffect(() => {
     if (
@@ -84,9 +88,12 @@ const Header = ({
           setCurrentTagline(tagline);
         } catch (error) {
           console.error("Error fetching tagline:", error);
+        } finally {
+          setIsTaglineLoaded(true); // Marca el tagline como cargado, exitoso o no
         }
       }
     };
+
     const contentId = isSeriesPage
       ? headerSeries[currentSerieIndex]?.id
       : isMoviesPage
@@ -96,6 +103,7 @@ const Header = ({
       : null;
 
     if (contentId) {
+      setIsTaglineLoaded(false); // Resetea la carga antes de obtener el tagline
       fetchTaglineForCurrentContent(contentId);
     }
   }, [
@@ -108,7 +116,6 @@ const Header = ({
     isCombinedPage,
     currentContent,
   ]);
-
   return (
     <motion.header
       className="relative h-full md:h-[80vh] w-full mt-16 overflow-hidden"
@@ -120,7 +127,7 @@ const Header = ({
       <AnimatePresence>
         {currentContent && (
           <>
-            {!allContentLoaded && (
+            {!activeHeader && (
               <div className="absolute inset-0 bg-[#0A0A1A] animate-pulse"></div>
             )}
 
@@ -134,7 +141,7 @@ const Header = ({
               <AnimatePresence mode="wait">
                 <motion.img
                   key={backgroundImage}
-                  src={adjustImageQuality(backgroundImage, "original")}
+                  src={adjustImageQuality(backgroundImage, "w1280")}
                   alt={currentContent.title || "No Title Available"}
                   className={`absolute inset-0 w-full h-full object-cover object-top ${
                     allContentLoaded ? "opacity-100" : "opacity-0"
@@ -163,9 +170,7 @@ const Header = ({
                   {currentContent.title || "Title not available"}
                 </h1>
                 <p className="mt-4 text-sm sm:text-base text-white md:text-lg lg:text-xl leading-relaxed line-clamp-3">
-                  {currentTagline ||
-                    currentContent.description ||
-                    "No description available"}
+                  {currentContent.description || "No description available"}
                 </p>
 
                 <div className="mt-6 space-x-4">

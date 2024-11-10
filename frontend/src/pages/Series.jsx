@@ -143,7 +143,6 @@ const Series = () => {
     fetchData();
   }, [dispatch]);
 
-
   useEffect(() => {
     const handleResize = () => {
       setWindowSize(window.innerWidth);
@@ -300,7 +299,11 @@ const Series = () => {
         <div className="min-h-screen overflow-x-hidden transition-colors text-white bg-[#0A0A1A]">
           <RealNavbar />
           {headerSerie ? (
-            <Header headerSeries={[headerSerie, ...topRatedSeries]} isSeriesPage={true} />
+            <Header
+              headerSeries={[headerSerie, ...topRatedSeries]}
+              isSeriesPage={true}
+              isCombinedPage={false}
+            />
           ) : (
             <p className="text-white text-center mt-6">
               No featured series available
@@ -310,18 +313,63 @@ const Series = () => {
             "Top 10 Series",
             topSeries,
             "topSeries",
-            "text-2xl md:text-3xl font-bold mb-4"
+            "text-2xl md:text-3xl font-bold mb-4 text-white"
           )}
           <div className="space-y-6 px-4 md:px-8 mt-4">
-            {renderSliderSection("Animation Series", animationSeries, "animationSeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Family Series", familySeries, "familySeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Crime Series", crimeSeries, "crimeSeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Comedy Series", comedySeries, "comedySeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Drama Series", dramaSeries, "dramaSeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Action & Adventure Series", actionAndAventureSeries, "actionAndAventureSeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Documental Series", documentalSeries, "documentalSeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Western Series", westernSeries, "westernSeries", "text-2xl md:text-3xl font-bold mb-4")}
-            {renderSliderSection("Mystery Series", mysterySeries, "mysterySeries", "text-2xl md:text-3xl font-bold mb-4")}
+            {renderSliderSection(
+              "Animation Series",
+              animationSeries,
+              "animationSeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Family Series",
+              familySeries,
+              "familySeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Crime Series",
+              crimeSeries,
+              "crimeSeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Comedy Series",
+              comedySeries,
+              "comedySeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Drama Series",
+              dramaSeries,
+              "dramaSeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Action & Adventure Series",
+              actionAndAventureSeries,
+              "actionAndAventureSeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Documental Series",
+              documentalSeries,
+              "documentalSeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Western Series",
+              westernSeries,
+              "westernSeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
+            {renderSliderSection(
+              "Mystery Series",
+              mysterySeries,
+              "mysterySeries",
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
+            )}
           </div>
         </div>
       )}

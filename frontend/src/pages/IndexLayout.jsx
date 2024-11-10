@@ -19,55 +19,60 @@ const IndexLayout = () => {
   const dispatch = useDispatch();
   const { handleOpenModal } = useContext(ModalContext);
 
+  // Fetch de películas solo si el usuario no está autenticado
   useEffect(() => {
-    const fetchMovies = async () => {
-      dispatch(setLoading());
-      const selectedMovies = [
-        "Inception",
-        "Interstellar",
-        "The Wild Robot",
-        "Black Cab",
-        "Schindler's List",
-        "The Menendez Brothers",
-      ];
-      try {
-        const movies = await getFeaturedMovies(selectedMovies);
-        const filteredMovies = movies.filter(
-          (movie, index, self) =>
-            index ===
-            self.findIndex((m) => m.genres[0].name === movie.genres[0].name)
-        );
+    if (!user) {
+      const fetchMovies = async () => {
+        dispatch(setLoading());
+        const selectedMovies = [
+          "Inception",
+          "Interstellar",
+          "The Wild Robot",
+          "Black Cab",
+          "Schindler's List",
+          "The Menendez Brothers",
+        ];
+        try {
+          const movies = await getFeaturedMovies(selectedMovies);
+          const filteredMovies = movies.filter(
+            (movie, index, self) =>
+              index ===
+              self.findIndex((m) => m.genres[0]?.name === movie.genres[0]?.name)
+          );
+          dispatch(setFeaturedMovies(filteredMovies));
+        } catch (error) {
+          dispatch(setError(error.message || "Error fetching movies"));
+        }
+      };
 
-        dispatch(setFeaturedMovies(filteredMovies));
-      } catch (error) {
-        dispatch(setError(error));
-      }
-    };
+      fetchMovies();
+    }
+  }, [dispatch, user]);
 
-    fetchMovies();
-  }, [dispatch]);
-
+  // Fetch de series solo si el usuario no está autenticado
   useEffect(() => {
-    const fetchFeaturedSeries = async () => {
-      dispatch(setLoading());
-      try {
-        const featuredSeries = await getFeaturedSeries({
-          totalPages: 10,
-          size: 20,
-        });
-        dispatch(setFeaturedSeries(featuredSeries));
-      } catch (error) {
-        dispatch(setError(error));
-      }
-    };
+    if (!user) {
+      const fetchFeaturedSeries = async () => {
+        dispatch(setLoading());
+        try {
+          const featuredSeries = await getFeaturedSeries({
+            totalPages: 10,
+            size: 20,
+          });
+          dispatch(setFeaturedSeries(featuredSeries));
+        } catch (error) {
+          dispatch(setError(error.message || "Error fetching series"));
+        }
+      };
 
-    fetchFeaturedSeries();
-  }, [dispatch]);
+      fetchFeaturedSeries();
+    }
+  }, [dispatch, user]);
 
   return user ? (
     <Home />
   ) : (
-    <>
+    <div className="z-10">
       <Navbar />
       <header className="font-maxSans">
         <div className="relative flex bg-black min-h-screen w-full">
@@ -91,9 +96,7 @@ const IndexLayout = () => {
             </p>
 
             <button
-              onClick={() => {
-                handleOpenModal("subscribe");
-              }}
+              onClick={() => handleOpenModal("subscribe")}
               className="btn py-2 px-4 sm:py-3 sm:px-5 bg-[rgb(0,43,231)] mt-4 text-white font-bold rounded-xl transition duration-150 hover:bg-[rgb(0,30,180)]"
             >
               START YOUR JOURNEY NOW
@@ -108,7 +111,7 @@ const IndexLayout = () => {
           <WatchSerieList series={featuredSeries} />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +17,7 @@ import java.util.List;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class Serie {
+public class Serie implements Serializable {
 
     @Id
     private Long id;
@@ -25,7 +26,7 @@ public class Serie {
     @Column(length = 3000)
     private String description;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "serie_genre",
             joinColumns = @JoinColumn(name = "serie_id"),
             inverseJoinColumns = @JoinColumn(name = "genre_id"))
@@ -50,7 +51,7 @@ public class Serie {
     @Column(name = "number_of_episodes")
     private Long numberOfEpisodes;
 
-    @OneToMany(mappedBy = "serie", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "serie", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<Season> seasons;
 

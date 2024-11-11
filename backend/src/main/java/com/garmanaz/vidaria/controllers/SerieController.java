@@ -4,7 +4,6 @@ import com.garmanaz.vidaria.entities.Serie;
 import com.garmanaz.vidaria.services.SerieService;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -14,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -28,6 +28,7 @@ public class SerieController {
         this.serieService = serieService;
     }
 
+    @Transactional
     @GetMapping("/type/{type}")
     public ResponseEntity<?> getSeriesByType(@PathVariable @NonNull String type, @RequestParam(defaultValue = "1") int page) {
         try {
@@ -47,7 +48,6 @@ public class SerieController {
         }
     }
 
-    //check if exists in db
     @GetMapping("/check/{id}")
     public ResponseEntity<Boolean> checkIfSerieExists(@PathVariable Long id) {
         return ResponseEntity.ok(serieService.existsById(id));
@@ -125,7 +125,6 @@ public class SerieController {
         Serie savedSeries = serieService.saveSerie(series);
         return ResponseEntity.ok(savedSeries);
     }
-
 
 
 }

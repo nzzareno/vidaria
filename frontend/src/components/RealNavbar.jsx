@@ -2,50 +2,33 @@ import { useEffect, useState } from "react";
 import { FaBars, FaBookmark } from "react-icons/fa";
 import { GrLogout } from "react-icons/gr";
 import { useDispatch } from "react-redux";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Search from "./Search";
 
 const RealNavbar = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1120);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     dispatch({ type: "auth/logout" });
-    navigate("/");
+    navigate("/index");
   };
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
+      setIsMobile(window.innerWidth <= 1120);
     };
 
     window.addEventListener("resize", handleResize);
-    window.addEventListener("scroll", handleScroll);
-
     return () => {
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
-  const isDetailsPage =
-    location.pathname.startsWith("/movies/") ||
-    location.pathname.startsWith("/series/");
-  const isHomePage = location.pathname === "/home";
-
-  const navbarStyle =
-    isMobile || (isScrolled && isDetailsPage) || (!isDetailsPage && !isHomePage)
-      ? "bg-[#0A0A1A]"
-      : "bg-transparent";
+  const navbarStyle = "bg-[#0A0A1A]";
 
   return (
     <nav
@@ -56,77 +39,77 @@ const RealNavbar = () => {
           <Link to={"/"}>vidaria</Link>
         </h1>
 
-        <div
-          className={`hidden ${
-            isMobile ? "flex" : "md:flex"
-          } flex-1 justify-center space-x-6`}
-        >
-          <a href="/" className="hover:text-gray-400">
-            Home
-          </a>
-          <a href="/movies" className="hover:text-gray-400">
-            Movies
-          </a>
-          <a href="/series" className="hover:text-gray-400">
-            TV Shows
-          </a>
-        </div>
+        {/* Desktop Nav Links */}
+        {!isMobile && (
+          <div className="flex flex-1 justify-center space-x-6">
+            <Link to="/" className="hover:text-gray-400">
+              Home
+            </Link>
+            <Link to="/movies" className="hover:text-gray-400">
+              Movies
+            </Link>
+            <Link to="/series" className="hover:text-gray-400">
+              TV Shows
+            </Link>
+          </div>
+        )}
 
-        {/* Componente de búsqueda */}
-        {/* Componente de búsqueda */}
-        <div className="flex items-center space-x-3">
-          <Search />
-
-          {/* Icono de Watchlist */}
-          <Link
-            to="/watchlist"
-            className="flex pr-[1.4rem] items-center hover:text-red-400"
-            style={{ display: "flex", alignItems: "center" }}
-          >
-            <FaBookmark size={24} />
-          </Link>
-
-          {/* Botón de logout */}
-          <a
-            onClick={handleLogout}
-            className="flex items-center cursor-pointer hover:text-gray-400"
-            style={{ display: "flex", alignItems: "center" }}
-          >
-            <GrLogout size={24} />
-          </a>
-        </div>
-
-        <button
-          className="md:hidden focus:outline-none"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          <FaBars size={24} />
-        </button>
-      </div>
-
-      {isMenuOpen && (
-        <div className="md:hidden flex flex-col space-y-2 px-4 pb-4 bg-[#0a0a1a00]">
-          <a href="/" className="hover:text-gray-400">
-            Home
-          </a>
-          <a href="/movies" className="hover:text-gray-400">
-            Movies
-          </a>
-          <a href="/series" className="hover:text-gray-400">
-            TV Shows
-          </a>
-          <div className="flex flex-col items-end mt-4 space-y-2">
-            {/* Icono de Watchlist en menú desplegable */}
-            <Link to="/watchlist" className="hover:text-gray-400">
+        {/* Icons and Search for Desktop */}
+        {!isMobile && (
+          <div className="flex items-center space-x-4">
+            <Search />
+            <Link to="/watchlist" className="hover:text-red-400 ">
               <FaBookmark size={24} />
             </Link>
-
             <a
               onClick={handleLogout}
               className="cursor-pointer hover:text-gray-400"
             >
               <GrLogout size={24} />
             </a>
+          </div>
+        )}
+
+        {/* Mobile Menu Toggle */}
+        {isMobile && (
+          <button
+            className="focus:outline-none"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <FaBars size={24} />
+          </button>
+        )}
+      </div>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && isMobile && (
+        <div className="flex flex-col items-center space-y-4 px-4 pb-4 bg-[#0A0A1A] text-white">
+          <Link to="/" className="hover:text-gray-400">
+            Home
+          </Link>
+          <Link to="/movies" className="hover:text-gray-400">
+            Movies
+          </Link>
+          <Link to="/series" className="hover:text-gray-400">
+            TV Shows
+          </Link>
+
+          {/* Watchlist Link in Mobile Menu */}
+          <Link to="/watchlist" className="hover:text-gray-400 ">
+            Watchlist
+          </Link>
+
+          {/* Logout and Search Icons for Mobile */}
+          <div className="flex items-center justify-between w-full mt-4 px-4">
+            <a
+              onClick={handleLogout}
+              className="cursor-pointer hover:text-gray-400"
+            >
+              <GrLogout size={24} />
+            </a>
+            <div className="flex-1 max-w-xs text-right">
+              <Search />
+            </div>
           </div>
         </div>
       )}

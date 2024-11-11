@@ -1,8 +1,8 @@
 package com.garmanaz.vidaria.controllers;
 
 import com.garmanaz.vidaria.entities.Movie;
-import com.garmanaz.vidaria.repositories.MovieRepository;
 import com.garmanaz.vidaria.services.MovieService;
+import com.garmanaz.vidaria.services.MovieCacheService;
 import com.garmanaz.vidaria.utils.GlobalExceptionHandler;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -23,18 +23,17 @@ import java.util.*;
 public class MovieController {
 
     private final MovieService movieService;
-    private final MovieRepository movieRepository;
+    private final MovieCacheService movieCacheService;
 
-    public MovieController(MovieService movieService, MovieRepository movieRepository) {
+    public MovieController(MovieService movieService, MovieCacheService movieCacheService) {
         this.movieService = movieService;
-        this.movieRepository = movieRepository;
+        this.movieCacheService = movieCacheService;
     }
 
     @GetMapping("/sync")
     @Transactional
     public ResponseEntity<String> syncMovies() {
         try {
-            // Asegúrate de que esta llamada esté dentro de la transacción
             movieService.syncMovies();
             return ResponseEntity.ok("Movies synchronized successfully!");
         } catch (Exception e) {
@@ -81,7 +80,6 @@ public class MovieController {
 
     @GetMapping("/featured")
     public ResponseEntity<List<Movie>> getFeaturedMovies(@RequestParam(required = false, defaultValue = "") List<String> movieNames) {
-        // Usa un Set para asegurar que no haya géneros duplicados
         Set<String> uniqueGenres = new HashSet<>(Arrays.asList(
                 "action", "adventure", "animation", "horror", "mystery", "romance",
                 "comedy", "crime", "documentary", "drama", "family", "fantasy",
@@ -89,15 +87,13 @@ public class MovieController {
         ));
 
         List<Movie> featuredMovies = new ArrayList<>();
-        Set<Long> addedMovieIds = new HashSet<>(); // Para evitar duplicados
+        Set<Long> addedMovieIds = new HashSet<>();
 
         for (String genre : uniqueGenres) {
             try {
-                // Obtener las mejores películas por género
                 Pageable page = Pageable.ofSize(20);
                 Page<Movie> bestMoviesByGenres = movieService.getBestMoviesByGenres(genre, page);
 
-                // Filtra las películas por el nombre que recibiste
                 assert movieNames != null;
                 Movie selectedMovie = bestMoviesByGenres.getContent().stream()
                         .filter(movie -> movieNames.contains(movie.getTitle()) && !addedMovieIds.contains(movie.getId()))
@@ -105,11 +101,10 @@ public class MovieController {
                         .orElse(null);
 
                 if (selectedMovie != null) {
-                    featuredMovies.add(selectedMovie); // Agrega la película
-                    addedMovieIds.add(selectedMovie.getId()); // Marca como agregada
+                    featuredMovies.add(selectedMovie);
+                    addedMovieIds.add(selectedMovie.getId());
                 }
 
-                // Solo agrega hasta 6 películas
                 if (featuredMovies.size() >= 6) {
                     break;
                 }
@@ -121,8 +116,6 @@ public class MovieController {
         return ResponseEntity.ok(featuredMovies);
     }
 
-
-    // GET BEST MOVIES BY GENRES
     @GetMapping("/best/{genre}")
     public ResponseEntity<Page<Movie>> getBestMoviesByGenres(
             @PathVariable String genre,
@@ -134,16 +127,14 @@ public class MovieController {
         }
     }
 
-
     @GetMapping
     public ResponseEntity<Page<Movie>> getMovies(Pageable pageable) {
         try {
-            return ResponseEntity.ok(movieService.getMovies(pageable));
+            return ResponseEntity.ok(movieService.getPaginatedMovies(pageable));
         } catch (Exception e) {
             throw new RuntimeException("Error fetching movies: " + GlobalExceptionHandler.handleException(e).getBody());
         }
     }
-
 
     @GetMapping("/paginated")
     public ResponseEntity<Page<Movie>> getPaginatedMovies(Pageable pageable) {
@@ -157,7 +148,8 @@ public class MovieController {
     @GetMapping("/{film}")
     public ResponseEntity<Movie> getMovieById(@RequestParam(required = false) String idParam, @PathVariable String film) {
         try {
-            return ResponseEntity.ok(movieService.getMovieById(idParam, film));
+            Movie movie = movieCacheService.getMovie(Long.parseLong(film));
+            return ResponseEntity.ok(movie);
         } catch (Exception e) {
             throw new EntityNotFoundException("Error fetching movie: " + GlobalExceptionHandler.handleException(e).getBody());
         }

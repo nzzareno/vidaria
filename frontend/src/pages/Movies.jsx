@@ -125,7 +125,7 @@ const Movies = () => {
                           <motion.img
                             src={movie.cover}
                             alt={movie.title}
-                            className="w-full h-[12rem] md:h-[16rem] lg:h-[19rem] object-cover rounded-lg"
+                            className="w-[200px] h-[300px] object-cover rounded-lg cursor-pointer"
                             whileHover={{
                               opacity: 0.7,
                             }}

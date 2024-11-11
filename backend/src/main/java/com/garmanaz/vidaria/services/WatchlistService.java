@@ -4,6 +4,8 @@ import com.garmanaz.vidaria.DTO.MovieResponse;
 import com.garmanaz.vidaria.DTO.SerieResponse;
 import com.garmanaz.vidaria.entities.*;
 import com.garmanaz.vidaria.repositories.*;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class WatchlistService {
         this.categoryRepository = categoryRepository;
     }
 
+
     public boolean isInWatchlist(Long userId, Long movieId, Long serieId) {
         if (movieId != null) {
             return watchlistRepository.existsByUserIdAndMovieId(userId, movieId);
@@ -51,6 +54,7 @@ public class WatchlistService {
         return false;
     }
 
+    @Transactional
     public Watchlist addToWatchlist(Long userId, Long movieId, Long serieId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -70,7 +74,7 @@ public class WatchlistService {
         return watchlistRepository.save(watchlist);
     }
 
-    private Movie fetchAndSaveMovie(Long movieId) {
+    public Movie fetchAndSaveMovie(Long movieId) {
         String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=b519a2cc32b8654d1e683c286b4e8f4e";
         MovieResponse.MovieDetails movieResponse = restTemplate.getForObject(url, MovieResponse.MovieDetails.class);
         if (movieResponse != null) {
@@ -97,7 +101,7 @@ public class WatchlistService {
         throw new RuntimeException("Movie not found in external API");
     }
 
-    private Serie fetchAndSaveSerie(Long serieId) {
+    public Serie fetchAndSaveSerie(Long serieId) {
         String url = "https://api.themoviedb.org/3/tv/" + serieId + "?api_key=b519a2cc32b8654d1e683c286b4e8f4e";
         SerieResponse.SerieDetails serieResponse = restTemplate.getForObject(url, SerieResponse.SerieDetails.class);
         if (serieResponse != null) {
@@ -118,11 +122,12 @@ public class WatchlistService {
         throw new RuntimeException("Serie not found in external API");
     }
 
+
     public List<Watchlist> getWatchlistForUser(Long userId) {
         return watchlistRepository.findByUserId(userId);
     }
 
-    // remove from watchlist
+
     public void removeFromWatchlist(Long userId, Long movieId, Long serieId) {
         Optional<Watchlist> watchlistItem = watchlistRepository.findByUserIdAndMovieIdAndSerieId(userId, movieId, serieId);
 
@@ -132,6 +137,7 @@ public class WatchlistService {
             throw new EntityNotFoundException("Item not found in watchlist");
         }
     }
+
 
     @Transactional
     public void deleteAllFromWatchlist(Long userId) {

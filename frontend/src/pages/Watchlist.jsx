@@ -195,13 +195,13 @@ const Watchlist = () => {
 
                     {/* Icono de Basura en la esquina superior derecha */}
                     <button
-                      className="absolute  bottom-0 right-0 p-1 text-red-500 bg-gray-900 bg-opacity-75 hover:bg-red-500 hover:text-white rounded-full transition duration-300"
+                      className="absolute -bottom-1 right-0 p-2 text-red-500 bg-gray-900   hover:bg-red-900 hover:text-white rounded-full transition duration-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveItem(item);
                       }}
                     >
-                      <FaTrash className="text-lg" />
+                      <FaTrash className="text-md" />
                     </button>
                   </div>
                 </motion.div>

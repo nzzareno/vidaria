@@ -1,6 +1,6 @@
 package com.garmanaz.vidaria.entities;
 
-public enum Role {
+public enum Role  {
     USER,
     MODERATOR,
     ADMIN

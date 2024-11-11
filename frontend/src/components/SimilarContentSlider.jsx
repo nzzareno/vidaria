@@ -6,7 +6,7 @@ const SimilarContentSlider = ({ similarContent, handleSimilarClick }) => {
   const sliderSettings = {
     dots: false,
     infinite: true,
-    speed: 500,
+    speed: 1200,
     autoplay: false,
     arrows: true,
     draggable: false,
@@ -18,20 +18,16 @@ const SimilarContentSlider = ({ similarContent, handleSimilarClick }) => {
 
   return (
     <div className="w-full py-10 mt-10">
-      <h2 className="text-xl lg:text-2xl font-bold mb-6">
-        Maybe you like it too
-      </h2>
+      <h2 className="text-xl lg:text-2xl font-bold mb-6">May also like</h2>
       <Slider {...sliderSettings} className="overflow-hidden">
         {similarContent.map((item) => {
           const releaseYear = item.release_date
             ? new Date(item.release_date).getFullYear()
             : "";
 
-          const imageUrl = item.backdrop_path
-            ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
-            : item.poster_path
-            ? `https://image.tmdb.org/t/p/original${item.poster_path}`
-            : item.background;
+          const imageUrl =
+            item.background || item.backdrop || item.backdrop_path;
+
           if (!imageUrl) return null;
           return (
             <motion.div
@@ -44,6 +40,7 @@ const SimilarContentSlider = ({ similarContent, handleSimilarClick }) => {
                 alt={item.title || item.name}
                 className="w-full h-full object-cover rounded-lg"
                 style={{ transition: "box-shadow 0.01s linear" }}
+                loading="lazy"
               />
               <motion.div
                 className="absolute inset-2 bg-black cursor-pointer bg-opacity-60 rounded-lg flex items-center justify-center opacity-100 transition-opacity duration-300"

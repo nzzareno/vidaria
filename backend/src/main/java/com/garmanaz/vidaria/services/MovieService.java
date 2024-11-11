@@ -10,20 +10,23 @@ import com.garmanaz.vidaria.repositories.MovieRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class MovieService {
 
     private static final String API_URL = "https://api.themoviedb.org/3";
@@ -31,17 +34,21 @@ public class MovieService {
     private final GenreRepository genreRepository;
     private final CategoryRepository categoryRepository;
     private final RestTemplate restTemplate;
-
+    private final RedisTemplate<String, String> redisTemplate;
+    private final MovieCacheService movieCacheService;
 
     @Value("${tmdb.api.key}")
     private String API_KEY;
 
     @Autowired
-    public MovieService(MovieRepository movieRepository, GenreRepository genreRepository, CategoryRepository categoryRepository, RestTemplate restTemplate) {
+    public MovieService(MovieRepository movieRepository, GenreRepository genreRepository, CategoryRepository categoryRepository,
+                        RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate, MovieCacheService movieCacheService) {
         this.movieRepository = movieRepository;
         this.genreRepository = genreRepository;
         this.categoryRepository = categoryRepository;
         this.restTemplate = restTemplate;
+        this.redisTemplate = redisTemplate;
+        this.movieCacheService = movieCacheService;
     }
 
     @PostConstruct
@@ -50,20 +57,27 @@ public class MovieService {
         syncCategories();
     }
 
-    //SEARCHmOVIES
+    public void preCacheMoviesImages() {
+        List<Movie> movies = movieRepository.findAll();
+        for (Movie movie : movies) {
+            String imageUrl = movie.getBackground();
+            redisTemplate.opsForValue().set("movie:" + movie.getId() + ":image", imageUrl, 1, TimeUnit.DAYS);
+        }
+    }
 
+    public Movie getMovie(Long id) {
+        return movieCacheService.getMovie(id);
+    }
 
-    // Sincronizar géneros desde la API de TMDb
     public void syncGenres() {
         try {
-            List<Genre> genres = getGenres();
+            List<Genre> genres = movieCacheService.getGenres();
             genreRepository.saveAll(genres);
         } catch (Exception e) {
             System.err.println("Error syncing genres: " + e.getMessage());
         }
     }
 
-    // Sincronizar categorías localmente
     public void syncCategories() {
         List<String> categoryNames = Arrays.asList("popular", "top_rated", "upcoming", "now_playing", "trending");
         categoryNames.forEach(name -> {
@@ -78,7 +92,7 @@ public class MovieService {
         });
     }
 
-    // Obtener géneros desde TMDb
+    @Cacheable("genres")
     public List<Genre> getGenres() {
         String url = API_URL + "/genre/movie/list?api_key=" + API_KEY;
         ResponseEntity<MovieResponse.GenreResponse> response = restTemplate.exchange(url, HttpMethod.GET, null, MovieResponse.GenreResponse.class);
@@ -87,17 +101,6 @@ public class MovieService {
                         .map(genre -> new Genre(genre.getId(), genre.getName()))
                         .collect(Collectors.toList()))
                 .orElse(Collections.emptyList());
-    }
-
-    public Movie getMovie(Long id) {
-        String url = API_URL + "/movie/" + id + "?api_key=" + API_KEY;
-        try {
-            ResponseEntity<MovieResponse.MovieDetails> response = restTemplate.exchange(url, HttpMethod.GET, null, MovieResponse.MovieDetails.class);
-            return Optional.ofNullable(response.getBody()).map(this::mapToMovie).orElse(null);
-        } catch (Exception e) {
-            System.err.println("Error getting movie: " + e.getMessage());
-            return null; // Devuelve null para que no falle la transacción
-        }
     }
 
     private Movie mapToMovie(MovieResponse.MovieDetails movieDetails) {
@@ -116,14 +119,11 @@ public class MovieService {
         List<Genre> genres = movieDetails.getGenres().stream().map(g -> genreRepository.findById(g.getId()).orElse(null)).filter(Objects::nonNull).collect(Collectors.toList());
         movie.setGenres(genres);
 
-
         return movie;
     }
 
-    public Page<Movie> getMovies(Pageable pageable) {
-        long totalMovies = movieRepository.count();
-        List<Movie> movies = movieRepository.findAll(pageable).getContent();
-        return new PageImpl<>(movies, pageable, totalMovies);
+    public void syncMovies() {
+        saveAllMovies(1, 300);
     }
 
     private String getTrailer(Long movieId) {
@@ -137,16 +137,9 @@ public class MovieService {
         }
     }
 
-    // Método syncMovies llamado desde el controlador
-    public void syncMovies() {
-        // Sincroniza todas las películas limitando a 10 por categoría
-        saveAllMovies(1, 300);
-    }
-
     public void saveAllMovies(int startPage, int maxMoviesToSave) {
         List<Category> categories = categoryRepository.findAll();
         categories.forEach(category -> {
-            // Log antes de iniciar el proceso de sincronización para cada categoría
             System.out.println("Sincronizando películas para la categoría: " + category.getName());
             saveMoviesFromCategory(category, startPage, maxMoviesToSave);
         });
@@ -159,34 +152,27 @@ public class MovieService {
         while (moviesSaved.get() < maxMoviesToSave) {
             List<Movie> movies = fetchMovies(category, pageNumber);
 
-            // Si no hay más películas disponibles, rompe el bucle
             if (movies.isEmpty()) {
                 System.out.println("No hay más películas para la categoría " + category.getName() + " en la página " + pageNumber);
                 break;
             }
 
             for (Movie movie : movies) {
-                // Verifica si la película ya está en la base de datos
                 if (movieRepository.findById(movie.getId()).isEmpty()) {
                     movieRepository.save(movie);
-                    moviesSaved.incrementAndGet(); // Incrementa solo si se guarda una nueva película
+                    moviesSaved.incrementAndGet();
                     System.out.println("Película guardada: " + movie.getTitle());
                 }
 
-                // Rompe el bucle si se alcanzó el límite de películas a guardar
                 if (moviesSaved.get() >= maxMoviesToSave) {
                     System.out.println("Se alcanzó el límite de películas guardadas para la categoría " + category.getName());
                     break;
                 }
             }
-
-            // Incrementa el número de página para la siguiente solicitud
             pageNumber++;
         }
     }
 
-
-    // Obtener películas por categoría desde la API de TMDb
     public List<Movie> fetchMovies(Category category, int pageNumber) {
         String url = getCategoryUrl(category.getName(), pageNumber);
 
@@ -203,11 +189,10 @@ public class MovieService {
                     }).orElse(Collections.emptyList());
         } catch (Exception e) {
             System.err.println("Error fetching movies: " + e.getMessage());
-            return Collections.emptyList(); // Devuelve una lista vacía para evitar marcar la transacción
+            return Collections.emptyList();
         }
     }
 
-    // Construir la URL de categoría basada en el nombre de la categoría
     private String getCategoryUrl(String categoryName, int pageNumber) {
         String endpoint = switch (categoryName) {
             case "popular" -> "/movie/popular";
@@ -220,9 +205,7 @@ public class MovieService {
         return API_URL + endpoint + "?api_key=" + API_KEY + "&page=" + pageNumber;
     }
 
-    // Mapear la respuesta de película de TMDb a la entidad Movie, solo incluyendo películas con duración mayor a 40 minutos
-    private Movie mapTmdbMovieToMovie(MovieResponse.Result tmdbMovie, Category
-            category, Map<Long, Movie> movieDetailsMap) {
+    private Movie mapTmdbMovieToMovie(MovieResponse.Result tmdbMovie, Category category, Map<Long, Movie> movieDetailsMap) {
         Movie movie = new Movie();
         movie.setId(tmdbMovie.getId());
         movie.setTitle(tmdbMovie.getTitle());
@@ -237,10 +220,8 @@ public class MovieService {
         movie.setDirector(movieDetailsMap.get(tmdbMovie.getId()).getDirector());
         movie.setTrailer("https://www.youtube.com/watch?v=" + getTrailer(tmdbMovie.getId()));
 
-        // Obtener detalles de la película para verificar duración y calificación
         Movie detailedMovie = movieDetailsMap.get(tmdbMovie.getId());
         if (detailedMovie != null) {
-            // Solo guardamos películas con duración mayor a 40 minutos
             if (detailedMovie.getDuration() != null && detailedMovie.getDuration() > 40) {
                 if (detailedMovie.getRating() != null) {
                     movie.setRating(detailedMovie.getRating());
@@ -251,12 +232,10 @@ public class MovieService {
         return null;
     }
 
-
-    // Obtener detalles de múltiples películas
     private Map<Long, Movie> fetchMovieDetails(List<Long> movieIds) {
         Map<Long, Movie> movieDetailsMap = new HashMap<>();
         for (Long movieId : movieIds) {
-            Movie movie = getMovie(movieId);
+            Movie movie = movieCacheService.getMovie(movieId);
             if (movie != null) {
                 movieDetailsMap.put(movieId, movie);
             }
@@ -264,36 +243,18 @@ public class MovieService {
         return movieDetailsMap;
     }
 
-    // Método para paginar películas
     public Page<Movie> getPaginatedMovies(Pageable pageable) {
         long totalMovies = movieRepository.count();
         List<Movie> movies = movieRepository.findAll(pageable).getContent();
         return new PageImpl<>(movies, pageable, totalMovies);
     }
 
-
-    // Crear el objeto Pageable con la ordenación adecuada
-    public Page<Movie> searchMovies(String title,
-                                    List<String> genres,
-                                    List<String> categories,
-                                    LocalDate releaseDateFrom,
-                                    LocalDate releaseDateTo,
-                                    Double ratingFrom,
-                                    Double ratingTo,
-                                    Double popularityFrom,
-                                    Double popularityTo,
-                                    Pageable pageable) {
+    public Page<Movie> searchMovies(String title, List<String> genres, List<String> categories, LocalDate releaseDateFrom, LocalDate releaseDateTo, Double ratingFrom, Double ratingTo, Double popularityFrom, Double popularityTo, Pageable pageable) {
         title = title != null ? title.toLowerCase() : null;
-
         Sort sort = Sort.by(Sort.Order.desc("popularity"), Sort.Order.desc("rating"));
-
-
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
-
-
         return movieRepository.searchMovies(title, genres, categories, releaseDateFrom, releaseDateTo, ratingFrom, ratingTo, popularityFrom, popularityTo, pageable);
     }
-
 
     public void deleteMovie(Long id) {
         movieRepository.deleteById(id);
@@ -308,7 +269,6 @@ public class MovieService {
         return movieRepository.save(movie);
     }
 
-    // GET TOP 5 MOVIE OF EACH GENRE
     public List<Movie> getTop5MoviesOfEachGenre() {
         List<Genre> genres = genreRepository.findAll();
         List<Movie> topMovies = new ArrayList<>();
@@ -319,13 +279,10 @@ public class MovieService {
         return topMovies;
     }
 
-
     public Page<Movie> getMoviesByCategory(String categoryName, Pageable pageable) {
         return movieRepository.findMoviesByCategory(categoryName, pageable);
     }
 
-
-    // updatemovie
     public Movie updateMovie(Long id, Movie movie) {
         Movie existingMovie = movieRepository.findById(id).orElse(null);
         if (existingMovie != null) {
@@ -345,9 +302,7 @@ public class MovieService {
         return null;
     }
 
-
     public Page<Movie> getBestMoviesByGenres(String genre, Pageable pageable) {
-
         return movieRepository.getBestMoviesByGenres(genre, pageable);
     }
 
@@ -355,6 +310,3 @@ public class MovieService {
         return movieRepository.findByGenresIn(genre);
     }
 }
-
-
-

@@ -59,13 +59,7 @@ function AppContent() {
         {/* Ruta pública solo para usuarios no autenticados */}
         <Route
           path="/index"
-          element={
-            !isAuthenticated ? (
-              <PublicRoute component={IndexLayout} />
-            ) : (
-              <Navigate to="/home" replace />
-            )
-          }
+          element={!isAuthenticated && <PublicRoute component={IndexLayout} />}
         />
 
         {/* Ruta protegida para Home y demás rutas privadas */}

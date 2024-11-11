@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
 const Reviews = ({ reviews, openModal, formatReviewContent }) => {
-  const [expandedReviews, setExpandedReviews] = useState({});
   const [showMoreOptions, setShowMoreOptions] = useState({});
   const reviewRefs = useRef([]);
 
@@ -12,13 +11,6 @@ const Reviews = ({ reviews, openModal, formatReviewContent }) => {
       }
     });
   }, [reviews]);
-
-  const toggleExpandReview = (index) => {
-    setExpandedReviews((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
-  };
 
   return (
     <div className="w-full py-10 mt-10">
@@ -40,9 +32,7 @@ const Reviews = ({ reviews, openModal, formatReviewContent }) => {
             </div>
             <p
               ref={(el) => (reviewRefs.current[index] = el)}
-              className={`text-white ${
-                expandedReviews[index] ? "" : "line-clamp-3"
-              }`}
+              className="text-white line-clamp-3"
             >
               <span
                 dangerouslySetInnerHTML={{
@@ -52,10 +42,10 @@ const Reviews = ({ reviews, openModal, formatReviewContent }) => {
             </p>
             {showMoreOptions[index] && (
               <button
-                onClick={() => toggleExpandReview(index)}
+                onClick={() => openModal(review)}
                 className="text-blue-500 hover:text-blue-700 mt-2"
               >
-                {expandedReviews[index] ? "View Less" : "View More"}
+                View More
               </button>
             )}
           </div>

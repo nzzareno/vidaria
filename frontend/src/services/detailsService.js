@@ -55,12 +55,20 @@ export const fetchSerieDetails = async (id) => {
     let response = await fetch(
       `${API_BASE}/series/${id}?api_key=${API_KEY}&language=en-US`
     );
-    if (response.ok) return checkResponse(response);
 
-    console.warn(
-      `Serie with ID ${id} not found in your API. Fetching from external TMDb API...`
-    );
-    return fetchMovieIfNotInDB(id, "tv");
+    // Verificar si `last_air_date` está en la respuesta
+    const data = response.ok ? await checkResponse(response) : null;
+
+    // Si `last_air_date` no está presente en `data`, intenta obtenerlo de la API de TMDb
+    if (!data || !data.last_air_date) {
+      console.warn(
+        `Serie with ID ${id} not found in your API. Fetching from external TMDb API...`
+      );
+      const externalData = await fetchMovieIfNotInDB(id, "tv");
+      return { ...data, last_air_date: externalData?.last_air_date };
+    }
+
+    return data;
   } catch (error) {
     console.error("Error fetching series details:", error);
     throw error;
@@ -316,7 +324,6 @@ export const removeFromWatchlist = async (userId, movieId, serieId) => {
   }
 };
 
-
 export const clearWatchlist = async (userId) => {
   try {
     const response = await fetch(`${API_BASE}/api/watchlist/clear/${userId}`, {
@@ -335,8 +342,6 @@ export const clearWatchlist = async (userId) => {
     return null;
   }
 };
-
-
 
 export const fetchSimilar = async (id, type) => {
   try {
@@ -358,17 +363,18 @@ export const fetchSimilar = async (id, type) => {
     const similarContent = data.results
       .filter(
         (item) =>
-          (item.backdrop_path && item.poster_path) &&
+          item.backdrop_path &&
+          item.poster_path &&
           (item.title || item.name) &&
           (item.release_date || item.first_air_date)
       )
       .map((item) => ({
         ...item,
         poster_path: item.poster_path
-          ? `https://image.tmdb.org/t/p/original${item.poster_path}`
+          ? `https://image.tmdb.org/t/p/w1280${item.poster_path}`
           : null,
         backdrop_path: item.backdrop_path
-          ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
+          ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
           : null,
         title: item.title || item.name,
         release_date: item.release_date || item.first_air_date,
@@ -380,7 +386,6 @@ export const fetchSimilar = async (id, type) => {
     return [];
   }
 };
-
 
 export const fetchMovieIfNotInDB = async (id, type) => {
   const url =

@@ -27,14 +27,20 @@ export const getMoviesByCategory = async (
   return response.data.content;
 };
 
-export const getMoviesByGenre = async (genreName, params = { page: 1, size: 20 }) => {
+export const getMoviesByGenre = async (
+  genreName,
+  params = { page: 1, size: 20 }
+) => {
   // Realiza la solicitud utilizando el nombre del género en la URL
-  const response = await axios.get(`${API_URL}/best/${genreName.toLowerCase()}`, {
-    params: {
-      page: params.page,
-      size: params.size,
-    },
-  });
+  const response = await axios.get(
+    `${API_URL}/best/${genreName.toLowerCase()}`,
+    {
+      params: {
+        page: params.page,
+        size: params.size,
+      },
+    }
+  );
   return response.data.content;
 };
 
@@ -46,6 +52,18 @@ export const fetchMoviesByCategory = async (category, dispatch) => {
   } catch (error) {
     console.error(`Error loading ${category} movies:`, error);
     dispatch(setError(error.message));
+  }
+};
+
+export const gettingPopularHeaderMovies = async () => {
+  try {
+    const response = await fetch(
+      `${API_URL}/search?ratingFrom=7&ratingTo=9&page=3`
+    );
+    return checkResponse(response);
+  } catch (error) {
+    console.error("Failed to fetch popular header movies:", error);
+    return [];
   }
 };
 

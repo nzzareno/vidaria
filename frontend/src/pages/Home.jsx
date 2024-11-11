@@ -2,8 +2,16 @@ import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setError } from "../redux/movieSlice";
 import Slider from "react-slick";
-import { getMoviesByCategory } from "../services/movieService";
-import { getPopularSeries, getHeaderSeries } from "../services/serieService"; // Import necessary series functions
+import {
+  getMoviesByCategory,
+  gettingPopularHeaderMovies,
+} from "../services/movieService";
+import {
+  getPopularSeries,
+  getHeaderSeries,
+  getSeriesByType,
+  fetchPosterPath,
+} from "../services/serieService";
 import { RingLoader } from "react-spinners";
 import { motion } from "framer-motion";
 import Header from "../components/Header";
@@ -25,6 +33,9 @@ const Home = () => {
   const [headerMovies, setHeaderMovies] = useState([]);
   const [headerSeries, setHeaderSeries] = useState([]); // Series for the header
   const [popularSeries, setPopularSeries] = useState([]); // State for popular series
+  const [topRatedSeries, setTopRatedSeries] = useState([]);
+  const [onTheAirSeries, setOnTheAirSeries] = useState([]);
+  const [allImagesLoaded, setAllImagesLoaded] = useState(false);
   const [currentSlide, setCurrentSlide] = useState({
     popular: 0,
     upcoming: 0,
@@ -79,6 +90,8 @@ const Home = () => {
         nowPlaying: nowPlayingMovies,
         topRated: topRatedMovies,
         popularSeries: popularSeries,
+        topRatedSeries: topRatedSeries,
+        onTheAirSeries: onTheAirSeries,
       }[category];
 
       const totalItems = categoryItems.length;
@@ -93,18 +106,20 @@ const Home = () => {
       nowPlayingMovies,
       topRatedMovies,
       popularSeries,
+      topRatedSeries,
+      onTheAirSeries,
       windowSize,
     ]
   );
 
   const fetchMoviesByCategory = useCallback(
-    async (category, setMovies, pages = 1) => {
+    async (category, setMovies, pages = 3) => {
       try {
         const movies = [];
         for (let page = 1; page <= pages; page++) {
           const response = await getMoviesByCategory(category, {
             page,
-            size: 10,
+            size: 20,
           });
           movies.push(...response);
         }
@@ -121,22 +136,59 @@ const Home = () => {
     const loadAllContent = async () => {
       dispatch(setLoading(true));
       try {
-        const [popular, topRated, headerSeriesData, popularSeriesData] =
-          await Promise.all([
-            fetchMoviesByCategory("popular", setPopularMovies, 2),
-            fetchMoviesByCategory("top_rated", setTopRatedMovies, 2),
-            fetchMoviesByCategory("upcoming", setUpcomingMovies, 2),
-            fetchMoviesByCategory("now_playing", setNowPlayingMovies, 2),
-            fetchMoviesByCategory("trending", setTrendingMovies, 2),
-            getHeaderSeries(), // Fetch header series
-            getPopularSeries(), // Fetch popular series
-          ]);
+        const [
+          popularMoviesData,
+          topRatedMoviesData,
+          upcomingMoviesData,
+          nowPlayingMoviesData,
+          trendingMoviesData,
+          headerMoviesData,
+          headerSeriesData,
+          popularSeriesData,
+          topRatedSeriesData,
+          onTheAirSeriesData,
+        ] = await Promise.all([
+          fetchMoviesByCategory("popular", setPopularMovies, 2),
+          fetchMoviesByCategory("top_rated", setTopRatedMovies, 2),
+          fetchMoviesByCategory("upcoming", setUpcomingMovies, 2),
+          fetchMoviesByCategory("now_playing", setNowPlayingMovies, 2),
+          fetchMoviesByCategory("trending", setTrendingMovies, 2),
+          gettingPopularHeaderMovies(), // Popular movies for the header
+          getHeaderSeries(), // Header series for combining with movies
+          getPopularSeries(), // Popular series for "Popular Series" section
+          getSeriesByType("top_rated"), // Top Rated Series
+          getSeriesByType("on_the_air"), // On The Air Series
+        ]);
 
-        setHeaderMovies([...popular.slice(0, 5), ...topRated.slice(0, 5)]);
-        setHeaderSeries(headerSeriesData); // Set header series
-        setPopularSeries(popularSeriesData); // Set popular series
+        // Obtener y asignar el poster_path para topRatedSeries y onTheAirSeries
+        const topRatedSeriesWithPosters = await Promise.all(
+          topRatedSeriesData.map(async (series) => {
+            const poster = await fetchPosterPath(series.id);
+            return { ...series, poster };
+          })
+        );
 
+        const onTheAirSeriesWithPosters = await Promise.all(
+          onTheAirSeriesData.map(async (series) => {
+            const poster = await fetchPosterPath(series.id);
+            return { ...series, poster };
+          })
+        );
+
+        setPopularMovies(popularMoviesData || []);
+        setTopRatedMovies(topRatedMoviesData || []);
+        setUpcomingMovies(upcomingMoviesData || []);
+        setNowPlayingMovies(nowPlayingMoviesData || []);
+        setTrendingMovies(trendingMoviesData || []);
+        setHeaderMovies(headerMoviesData?.content || []);
+        setHeaderSeries(headerSeriesData || []);
+        setPopularSeries(popularSeriesData || []);
+        setTopRatedSeries(topRatedSeriesWithPosters || []);
+        setOnTheAirSeries(onTheAirSeriesWithPosters || []);
         setActiveHeader(true);
+
+        // Esperar a que todas las imágenes carguen
+        setAllImagesLoaded(true);
       } catch (error) {
         console.error("Error loading content:", error);
       } finally {
@@ -157,7 +209,7 @@ const Home = () => {
 
   const renderSliderSection = (
     title,
-    categoryItems,
+    categoryItems = [],
     categoryKey,
     titleClass
   ) => (
@@ -200,17 +252,15 @@ const Home = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <motion.div className="relative bg-[#0A0A1A] cursor-pointer transition-colors rounded-lg">
-                    <motion.img
-                      src={adjustImageQuality(
-                        item.cover || item.poster,
-                        "w300"
-                      )}
-                      alt={item.title}
-                      className="w-full h-auto max-h-[200px] md:max-h-[300px] object-cover rounded-lg"
-                      whileHover={{ opacity: 0.7 }}
-                    />
-                  </motion.div>
+                  <motion.img
+                    src={adjustImageQuality(
+                      item.poster_path || item.poster || item.cover,
+                      "w300"
+                    )}
+                    alt={item.title}
+                    className="w-[200px] h-[300px] object-cover rounded-lg cursor-pointer"
+                    whileHover={{ opacity: 0.7 }}
+                  />
                 </motion.div>
               </Link>
             ))}
@@ -222,7 +272,7 @@ const Home = () => {
 
   return (
     <>
-      {loading && !activeHeader ? (
+      {loading || !allImagesLoaded ? (
         <div className="flex justify-center items-center min-h-screen bg-[#0A0A1A]">
           <RingLoader color="#FF0000" size={200} />
         </div>
@@ -235,7 +285,7 @@ const Home = () => {
             isCombinedPage={true}
             activeHeader={activeHeader}
           />
-          <div className="space-y-6 px-4 md:px-8 mt-4">
+          <div className="space-y-6 px-4 md:px-8 mt-4 text-white">
             {renderSliderSection(
               "Popular Movies",
               popularMovies,
@@ -268,8 +318,20 @@ const Home = () => {
             )}
             {renderSliderSection(
               "Popular Series",
-              popularSeries,
+              popularSeries?.content || [],
               "popularSeries",
+              "text-2xl md:text-3xl font-bold mb-4"
+            )}
+            {renderSliderSection(
+              "Top Rated Series",
+              topRatedSeries,
+              "topRatedSeries",
+              "text-2xl md:text-3xl font-bold mb-4"
+            )}
+            {renderSliderSection(
+              "On The Air Series",
+              onTheAirSeries,
+              "onTheAirSeries",
               "text-2xl md:text-3xl font-bold mb-4"
             )}
           </div>

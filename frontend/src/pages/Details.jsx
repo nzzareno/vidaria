@@ -27,6 +27,7 @@ import ModalContext from "../context/ModalContext";
 import SimilarContentSlider from "../components/SimilarContentSlider";
 import Reviews from "../components/Reviews";
 import DetailsHeader from "../components/DetailsHeader";
+import { fetchPosterPath } from "../services/serieService";
 
 const adultVerification = (adult) => (adult ? "18+" : "13+");
 const formatRating = (rating) => (rating ? rating.toFixed(1) : "N/A");
@@ -57,6 +58,10 @@ const Details = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const fetchDetails = async () => {
       setLoading(true);
       try {
@@ -78,27 +83,37 @@ const Details = () => {
           setIsInWatchlist(existsInWatchlist);
         }
 
-        if (isSeries && !data.last_air_date) {
-          const externalData = await fetchMovieIfNotInDB(id, externalType);
-          data.last_air_date =
-            externalData?.last_air_date || data.last_air_date;
-        }
-
         if (data) {
-          const streamingData = await fetchStreamingLinks(id, externalType);
+          const [
+            streamingData,
+            castData,
+            crewData,
+            audioData,
+            taglineData,
+            reviewsData,
+            similarData,
+          ] = await Promise.all([
+            fetchStreamingLinks(id, externalType),
+            fetchCast(id, externalType),
+            fetchCrew(id, externalType),
+            fetchMovieAudio(id, externalType),
+            fetchTagline(id, externalType),
+            fetchReviews(id, externalType),
+            fetchSimilar(id, externalType),
+          ]);
+
           setStreamingLinks(streamingData || []);
 
-          const castData = await fetchCast(id, externalType);
-          const crewData = await fetchCrew(id, externalType);
-          const audioData = await fetchMovieAudio(id, externalType);
-          const taglineData = await fetchTagline(id, externalType);
-          const reviewsData = (await fetchReviews(id, externalType)).slice(
-            0,
-            3
-          );
-          const similarData = (await fetchSimilar(id, externalType)).filter(
-            (item) => item.poster_path
-          );
+          const filteredSimilarData = (similarData || [])
+            .filter(
+              (item) => item.backdrop_path || item.backdrop || item.background
+            )
+            .map((item) => ({
+              ...item,
+              backdrop_path: item.backdrop_path
+                ? item.backdrop_path
+                : item.background || item.backdrop,
+            }));
 
           const executiveProducer = crewData
             .filter((member) => member.job === "Executive Producer")
@@ -119,33 +134,28 @@ const Details = () => {
               ? directorData.name
               : executiveProducer?.name || "Unknown"
           );
-
+          
           setDetails({
             ...data,
             adult: data.adult ? "18+" : "13+",
             releaseYear:
-              data.release_date ||
-              data.releaseDate ||
-              data.first_air_date ||
-              data.last_air_date
+              data.release_date || data.releaseDate || data.first_air_date
                 ? new Date(
-                    data.release_date ||
-                      data.first_air_date ||
-                      data.last_air_date ||
-                      data.releaseDate
+                    data.release_date || data.first_air_date || data.releaseDate
                   ).getFullYear()
                 : "Unknown",
             numberOfSeasons: data.numberOfSeasons || data.number_of_seasons,
             numberOfEpisodes:
               data.numberOfEpisodes || data.number_of_episodes || "Unknown",
+            poster_path: await fetchPosterPath(id),
           });
 
           dispatch(setMovieTagline(taglineData));
           setAudioLanguages(audioData.map((lang) => lang.english_name));
           setTagline(taglineData);
           setCast(castData.slice(0, 15));
-          setReviews(reviewsData);
-          setSimilarContent(similarData);
+          setReviews(reviewsData.slice(0, 3));
+          setSimilarContent(filteredSimilarData);
         }
       } catch (error) {
         console.error("Error fetching details:", error);
@@ -155,16 +165,14 @@ const Details = () => {
     };
 
     fetchDetails();
-  }, [id, isSeries, externalType, internalType, dispatch, setIsInWatchlist]);
+  }, [id, isSeries, externalType, dispatch, setIsInWatchlist, internalType]);
 
   const handleAddToWatchlist = async () => {
     try {
       const userData = await fetchUserData();
       const userId = userData?.id;
 
-      if (!userId) {
-        return;
-      }
+      if (!userId) return;
 
       if (!isInWatchlist) {
         const response = await addToWatchlist(
@@ -172,9 +180,7 @@ const Details = () => {
           isSeries ? null : id,
           isSeries ? id : null
         );
-        if (response) {
-          setIsInWatchlist(true); // Cambia el estado a "En Watchlist"
-        }
+        if (response) setIsInWatchlist(true);
       }
     } catch (error) {
       console.error("Error adding to watchlist:", error);
@@ -194,14 +200,22 @@ const Details = () => {
         isSeries ? id : null
       );
 
-      if (response) {
-        setIsInWatchlist(false); // Cambia el estado para reflejar que ya no está en la Watchlist
-      } else {
-        console.error("Failed to remove from watchlist");
-      }
+      if (response) setIsInWatchlist(false);
     } catch (error) {
       console.error("Error removing from watchlist:", error);
     }
+  };
+
+  const formatReviewContent = (content) => {
+    content = content.replace(/\*\*\*(.*?)\*\*\*/g, "<i>$1</i>");
+    content = content.replace(/\*(.*?)\*/g, "<b>$1</b>");
+    content = content.replace(/__(.*?)__/g, "<strong>$1</strong>");
+    content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+    content = content.replace(/^>(.*)/gm, "<blockquote>$1</blockquote>");
+    content = content.replace(/```(.*)```/g, "<code>$1</code>");
+    content = content.replace(/---/g, "<hr>");
+    content = content.replace(/_(.*?)_/g, "<b>$1</b>");
+    return content.replace(/\./g, ".<br>");
   };
 
   const openModal = (review) => {
@@ -214,63 +228,24 @@ const Details = () => {
   };
 
   const handleSimilarClick = (item) => {
-    // Asegurarse de que el tipo es correcto. Si media_type no está, usar el contexto de la página.
     const itemType = item.media_type || (isSeries ? "series" : "movies");
-
-    // Si el item es una serie y estamos en la vista de series, navega como serie.
     if (itemType === "tv" || isSeries) {
       navigate(`/series/${item.id}`, { state: { type: "series" } });
     } else {
-      // Si es una película, navega a la vista de películas.
       navigate(`/movies/${item.id}`, { state: { type: "movies" } });
     }
   };
-  const formatReviewContent = (content) => {
-    content = content.replace(/\*\*\*(.*?)\*\*\*/g, "<i>$1</i>");
-    content = content.replace(/\*(.*?)\*/g, "<b>$1</b>");
-    content = content.replace(/__(.*?)__/g, "<strong>$1</strong>");
-    content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
-    content = content.replace(/^>(.*)/gm, "<blockquote>$1</blockquote>");
-    content = content.replace(/```(.*)```/g, "<code>$1</code>");
-    content = content.replace(/---/g, "<hr>");
-    content = content.replace(/_(.*?)_/g, "<b>$1</b>");
-    content = content.replace(/\. [a-z]/g, (match) =>
-      match.toUpperCase().replace(" ", "")
-    );
-    content = content.replace(/\./g, ".<br>");
-    return content;
-  };
-
-  const renderStreamingLinks = (links) => {
-    const filteredLinks = links.filter(
-      (link) => !link.provider.toLowerCase().includes("maxamazonchannel")
-    );
-
-    return (
-      <div className="flex flex-wrap gap-4 mt-4">
-        {filteredLinks.map((link) => (
-          <div
-            key={link.provider}
-            className="p-2 rounded-full bg-gray-900 cursor-pointer"
-            onClick={() =>
-              window.open(
-                `https://www.${link.provider
-                  .toLowerCase()
-                  .replace(/\s+/g, "")}.com`,
-                "_blank"
-              )
-            }
-          >
-            <img
-              src={link.logo}
-              className="w-12 h-12 rounded-full object-cover transition-transform duration-200 hover:scale-110"
-              alt={link.provider}
-            />
-          </div>
-        ))}
-      </div>
-    );
-  };
+   
+  const backgroundUrl =
+    details?.background ||
+    details?.backdrop ||
+    "https://image.tmdb.org/t/p/original" + details?.backdrop_path;
+  const backgroundImageStyle = backgroundUrl
+    ? `linear-gradient(rgba(10, 10, 26, .95), rgba(10, 10, 26, 1)), url(${adjustImageQuality(
+        backgroundUrl,
+        "w1280"
+      )})`
+    : "none";
 
   return (
     <>
@@ -287,12 +262,7 @@ const Details = () => {
             transition={{ duration: 0.5 }}
             className="font-montserrat min-h-screen text-white relative bg-[#0A0A1A]"
             style={{
-              backgroundImage: `linear-gradient(rgba(10, 10, 26, .95), rgba(10, 10, 26, 1)), url(${adjustImageQuality(
-                details?.background ||
-                  details?.backdrop ||
-                  "https://image.tmdb.org/t/p/w500" + details?.backdrop_path,
-                "original"
-              )})`,
+              backgroundImage: backgroundImageStyle,
               backgroundSize: "cover",
               backgroundPosition: "top",
             }}
@@ -305,7 +275,32 @@ const Details = () => {
                 handleAddToWatchlist={handleAddToWatchlist}
                 handleRemoveFromWatchlist={handleRemoveFromWatchlist}
                 streamingLinks={streamingLinks}
-                renderStreamingLinks={renderStreamingLinks}
+                renderStreamingLinks={(links) => (
+                  <div className="flex gap-4">
+                    {links.map((link, index) => {
+                      const providerUrl =
+                        link.provider.toLowerCase() === "amazon prime video"
+                          ? "https://www.primevideo.com"
+                          : `https://www.${link.provider.toLowerCase()}.com`;
+                      
+                      return (
+                        <a
+                          key={index}
+                          href={link.url || providerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full overflow-hidden w-12 h-12"
+                        >
+                          <img
+                            src={link.logo}
+                            alt={link.provider}
+                            className="object-cover w-full h-full"
+                          />
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
                 tagline={tagline}
                 director={director}
                 audioLanguages={audioLanguages}
@@ -319,7 +314,29 @@ const Details = () => {
                 <Reviews
                   reviews={reviews}
                   openModal={openModal}
-                  formatReviewContent={formatReviewContent}
+                  formatReviewContent={(content) => {
+                    content = content.replace(
+                      /\*\*\*(.*?)\*\*\*/g,
+                      "<i>$1</i>"
+                    );
+                    content = content.replace(/\*(.*?)\*/g, "<b>$1</b>");
+                    content = content.replace(
+                      /__(.*?)__/g,
+                      "<strong>$1</strong>"
+                    );
+                    content = content.replace(
+                      /\[(.*?)\]\((.*?)\)/g,
+                      '<a href="$2">$1</a>'
+                    );
+                    content = content.replace(
+                      /^>(.*)/gm,
+                      "<blockquote>$1</blockquote>"
+                    );
+                    content = content.replace(/```(.*)```/g, "<code>$1</code>");
+                    content = content.replace(/---/g, "<hr>");
+                    content = content.replace(/_(.*?)_/g, "<b>$1</b>");
+                    return content.replace(/\./g, ".<br>");
+                  }}
                 />
               )}
 

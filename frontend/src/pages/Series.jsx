@@ -24,6 +24,7 @@ import {
   getFeaturedSeries,
   getTopSeries,
   getHeaderSeries,
+  fetchPosterPath,
 } from "../services/serieService";
 import Slider from "react-slick";
 import { createSliderSettings } from "../utils/sliderSettings";
@@ -33,6 +34,7 @@ const Series = () => {
   const dispatch = useDispatch();
   const [topRatedSeries, setTopRatedSeries] = useState([]);
   const [headerSerie, setHeaderSerie] = useState(null); // Serie destacada para el Header
+  const [allLoaded, setAllLoaded] = useState(false); // State to control the loader visibility
   const {
     animationSeries,
     crimeSeries,
@@ -77,6 +79,7 @@ const Series = () => {
   useEffect(() => {
     const fetchData = async () => {
       dispatch(setLoadingSerie(true));
+      setAllLoaded(false);
 
       try {
         const titles = [
@@ -92,7 +95,7 @@ const Series = () => {
           "the boys",
         ];
 
-        const headerSeriesData = await getHeaderSeries(); // Llamada a `getHeaderSeries`
+        const headerSeriesData = await getHeaderSeries();
         setHeaderSerie(headerSeriesData[0]);
         setTopRatedSeries(headerSeriesData.slice(1));
 
@@ -122,17 +125,54 @@ const Series = () => {
           getTopSeries(titles),
         ]);
 
-        dispatch(setCrimeSeries(crime?.content || []));
-        dispatch(setComedySeries(comedy?.content || []));
-        dispatch(setDramaSeries(drama?.content || []));
-        dispatch(setActionAndAventureSeries(actionAndAventure?.content || []));
-        dispatch(setDocumentalSeries(documental?.content || []));
-        dispatch(setWesternSeries(western?.content || []));
-        dispatch(setMysterySeries(mystery?.content || []));
-        dispatch(setAnimationSeries(animation?.content || []));
-        dispatch(setFamilySeries(family?.content || []));
-        dispatch(setFeaturedSeries(featured || []));
-        dispatch(setTopSeries(topSeries || []));
+        // Helper function to update poster paths
+        const updatePosterPath = async (series) => {
+          return Promise.all(
+            series.map(async (item) => {
+              const correctPoster = await fetchPosterPath(item.id);
+              console.log(
+                `Series ID: ${item.id}, Title: ${item.title} - ${
+                  correctPoster
+                    ? "Fetched new poster path"
+                    : "Failed to fetch poster path"
+                }`
+              );
+              return { ...item, poster: correctPoster || item.poster };
+            })
+          );
+        };
+
+        // Update each category and set them to the store
+        dispatch(setCrimeSeries(await updatePosterPath(crime?.content || [])));
+        dispatch(
+          setComedySeries(await updatePosterPath(comedy?.content || []))
+        );
+        dispatch(setDramaSeries(await updatePosterPath(drama?.content || [])));
+        dispatch(
+          setActionAndAventureSeries(
+            await updatePosterPath(actionAndAventure?.content || [])
+          )
+        );
+        dispatch(
+          setDocumentalSeries(await updatePosterPath(documental?.content || []))
+        );
+        dispatch(
+          setWesternSeries(await updatePosterPath(western?.content || []))
+        );
+        dispatch(
+          setMysterySeries(await updatePosterPath(mystery?.content || []))
+        );
+        dispatch(
+          setAnimationSeries(await updatePosterPath(animation?.content || []))
+        );
+        dispatch(
+          setFamilySeries(await updatePosterPath(family?.content || []))
+        );
+        dispatch(setFeaturedSeries(await updatePosterPath(featured || [])));
+        dispatch(setTopSeries(await updatePosterPath(topSeries || [])));
+
+        // Set allLoaded to true after all categories are fully loaded
+        setAllLoaded(true);
       } catch (error) {
         console.error("Error fetching series:", error);
       } finally {
@@ -267,7 +307,7 @@ const Series = () => {
                     <motion.img
                       src={item.poster || item.cover}
                       alt={item.title || "No Title"}
-                      className="w-full h-auto max-h-[200px] md:max-h-[300px] object-cover rounded-lg"
+                      className="w-[200px] h-[300px] object-cover rounded-lg cursor-pointer"
                       whileHover={{ opacity: 0.7 }}
                     />
                     {categoryKey === "topSeries" && (
@@ -291,7 +331,7 @@ const Series = () => {
 
   return (
     <>
-      {loadingSerie ? (
+      {loadingSerie || !allLoaded ? (
         <div className="flex justify-center items-center min-h-screen bg-[#0A0A1A]">
           <RingLoader color="#FF0000" size={200} />
         </div>

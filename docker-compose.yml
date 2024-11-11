@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build:
@@ -9,8 +11,13 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/vidaria
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=noelgats
+      - SPRING_REDIS_HOST=redis  # Añadir Redis host para que Spring Boot lo detecte
+      - SPRING_REDIS_PORT=6379  # Puerto de Redis
     depends_on:
       - db
+      - redis
+    networks:
+      - app-network
 
   db:
     image: postgres:15
@@ -23,6 +30,20 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:latest
+    container_name: vidaria-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
 
 volumes:
   pgdata:
+
+networks:
+  app-network:
+    driver: bridge

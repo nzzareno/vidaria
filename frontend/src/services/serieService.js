@@ -1,6 +1,33 @@
 const API_URL = `${import.meta.env.VITE_BACKEND_URL}/series`;
+
 // const VITE_TMDB_DETAILS_URL = import.meta.env.VITE_TMDB_DETAILS;
 // const VITE_TMDB_API_KEY = import.meta.env.VITE_API_KEY;
+
+const VITE_TMDB_SERIES_DETAILS_URL = `${
+  import.meta.env.VITE_TMDB_SERIES_DETAILS_URL
+}`;
+const API_KEY = `${import.meta.env.VITE_API_KEY}`;
+
+// Fetches the poster_path from the external TMDb API
+export const fetchPosterPath = async (id) => {
+  try {
+    const response = await fetch(
+      `${VITE_TMDB_SERIES_DETAILS_URL}/${id}?api_key=${API_KEY}&language=en-US`
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch poster path for series with ID ${id}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const poster = "https://image.tmdb.org/t/p/w1280" + data.poster_path;
+    return poster;
+  } catch (error) {
+    console.error(`Error fetching poster path for series ID ${id}:`, error);
+    return null;
+  }
+};
 
 export const getSeries = async () => {
   try {
@@ -127,6 +154,17 @@ export const getFeaturedSeries = async ({
   return featuredSeries;
 };
 
+export const getSeriesByType = async (type) => {
+  try {
+    const response = await fetch(
+      `http://localhost:8081/series/type/${type}?api_key=${API_KEY}`
+    );
+    return checkResponse(response);
+  } catch (error) {
+    console.error(`Failed to fetch series with type ${type}:`, error);
+    return []; // Devuelve un array vacío para evitar problemas en el frontend
+  }
+};
 export const fetchCast = async (id) => {
   try {
     const response = await fetch(`${API_URL}/${id}/cast`);
@@ -149,8 +187,15 @@ export const getHeaderSeries = async () => {
   return seriesData;
 };
 
+// Función para obtener las series populares directamente desde el endpoint
 export const getPopularSeries = async () => {
-  return await getHeaderSeries();
+  try {
+    const response = await fetch(`${API_URL}/most-popular?page=8`); // Endpoint directo para series populares
+    return checkResponse(response);
+  } catch (error) {
+    console.error("Failed to fetch popular series:", error);
+    return [];
+  }
 };
 
 // Función que verifica si la serie ya existe en la base de datos
@@ -192,18 +237,12 @@ export const saveSerieToDatabase = async (serie) => {
 };
 
 // Función para verificar la respuesta de la API
-export const checkResponse = async (response) => {
-  if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`);
+export async function checkResponse(response) {
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return response.json();
+  } else {
+    console.error("Error: Respuesta no es JSON", await response.text());
+    throw new Error("Respuesta no es JSON válida");
   }
-  const text = await response.text();
-  if (!text) {
-    throw new Error("Empty response body");
-  }
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Error parsing JSON response:", error);
-    throw new Error("Failed to parse JSON response");
-  }
-};
+}

@@ -1,9 +1,6 @@
-// Header.jsx
-
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { adjustImageQuality } from "../utils/sliderSettings";
-import { fetchTagline } from "../services/detailsService";
 import { Link } from "react-router-dom";
 
 const Header = ({
@@ -16,11 +13,9 @@ const Header = ({
 }) => {
   const [currentMovieIndex, setCurrentMovieIndex] = useState(0);
   const [currentSerieIndex, setCurrentSerieIndex] = useState(0);
-  const [currentTagline, setCurrentTagline] = useState("");
-  const [isTaglineLoaded, setIsTaglineLoaded] = useState(false);
+
   const [allContentLoaded, setAllContentLoaded] = useState(false);
 
-  // Determina el contenido actual según la página
   const currentContent = isSeriesPage
     ? headerSeries[currentSerieIndex]
     : isMoviesPage
@@ -73,49 +68,6 @@ const Header = ({
     isCombinedPage,
   ]);
 
-  useEffect(() => {
-    const fetchTaglineForCurrentContent = async (contentId) => {
-      if (contentId) {
-        try {
-          const tagline = await fetchTagline(
-            contentId,
-            isSeriesPage ||
-              (isCombinedPage &&
-                currentContent === headerSeries[currentSerieIndex])
-              ? "tv"
-              : "movie"
-          );
-          setCurrentTagline(tagline);
-        } catch (error) {
-          console.error("Error fetching tagline:", error);
-        } finally {
-          setIsTaglineLoaded(true); // Marca el tagline como cargado, exitoso o no
-        }
-      }
-    };
-
-    const contentId = isSeriesPage
-      ? headerSeries[currentSerieIndex]?.id
-      : isMoviesPage
-      ? headerMovies[currentMovieIndex]?.id
-      : isCombinedPage
-      ? currentContent?.id
-      : null;
-
-    if (contentId) {
-      setIsTaglineLoaded(false); // Resetea la carga antes de obtener el tagline
-      fetchTaglineForCurrentContent(contentId);
-    }
-  }, [
-    currentMovieIndex,
-    currentSerieIndex,
-    headerMovies,
-    headerSeries,
-    isSeriesPage,
-    isMoviesPage,
-    isCombinedPage,
-    currentContent,
-  ]);
   return (
     <motion.header
       className="relative h-full md:h-[80vh] w-full mt-16 overflow-hidden"
@@ -141,7 +93,7 @@ const Header = ({
               <AnimatePresence mode="wait">
                 <motion.img
                   key={backgroundImage}
-                  src={adjustImageQuality(backgroundImage, "w1280")}
+                  src={adjustImageQuality(backgroundImage, "original")}
                   alt={currentContent.title || "No Title Available"}
                   className={`absolute inset-0 w-full h-full object-cover object-top ${
                     allContentLoaded ? "opacity-100" : "opacity-0"
@@ -151,11 +103,12 @@ const Header = ({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 1 }}
+                  loading="lazy"
                 />
               </AnimatePresence>
             </div>
 
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#0A0A1A] via-black/60 to-transparent"></div>
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#0A0A1A] via-black/70 to-transparent"></div>
             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#0A0A1A] to-transparent"></div>
 
             {allContentLoaded && (

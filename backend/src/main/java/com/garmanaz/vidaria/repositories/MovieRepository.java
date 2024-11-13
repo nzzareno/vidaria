@@ -15,7 +15,7 @@ import java.util.List;
 @Repository
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
-    // Método para buscar una película con carga ansiosa de genres y category
+
     @EntityGraph(attributePaths = {"genres", "category"})
     @Query("SELECT m FROM Movie m LEFT JOIN m.genres g LEFT JOIN m.category c " +
             "WHERE (:title IS NULL OR LOWER(m.title) LIKE %:title%) " +
@@ -56,8 +56,4 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     @Query("SELECT m FROM Movie m LEFT JOIN m.genres g WHERE LOWER(g.name) = LOWER(:genre) ORDER BY m.rating DESC")
     Page<Movie> getBestMoviesByGenres(@Param("genre") String genre, Pageable pageable);
 
-    // Buscar películas por lista de géneros con carga ansiosa
-    @EntityGraph(attributePaths = {"genres", "category"})
-    @Query("SELECT m FROM Movie m LEFT JOIN m.genres g WHERE LOWER(g.name) IN :genres ORDER BY m.rating DESC")
-    List<Movie> findByGenresIn(@Param("genres") List<String> genres);
 }

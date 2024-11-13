@@ -245,7 +245,6 @@ public class SerieService {
         return Collections.emptyList();
     }
 
-
     @Transactional
     public String gettingCategories(String category, int pageNumber) {
         String endpoint = switch (category) {

@@ -57,6 +57,9 @@ public class MovieResponse {
     public static class Genre {
         private long id;
         private String name;
+
+        public Genre(long l, String comedy) {
+        }
     }
 
     @Data
@@ -162,5 +165,7 @@ public class MovieResponse {
     public static class GenreResponse {
 
         private List<Genre> genres;
+
+
     }
 }

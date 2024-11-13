@@ -127,7 +127,6 @@ public class WatchlistService {
         return watchlistRepository.findByUserId(userId);
     }
 
-
     public void removeFromWatchlist(Long userId, Long movieId, Long serieId) {
         Optional<Watchlist> watchlistItem = watchlistRepository.findByUserIdAndMovieIdAndSerieId(userId, movieId, serieId);
 

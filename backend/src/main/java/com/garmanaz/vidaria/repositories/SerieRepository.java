@@ -25,8 +25,8 @@ public interface SerieRepository extends JpaRepository<Serie, Long>, JpaSpecific
 
     // query for search series
     @Query("SELECT s FROM Serie s LEFT JOIN s.genreID g " +
-            "WHERE (:title IS NULL OR LOWER(s.title) LIKE %:title%) " +
-            "AND (:genres IS NULL OR LOWER(g.name) IN :genres) " +
+            "WHERE (:title IS NULL OR LOWER(s.title) LIKE CONCAT('%', LOWER(:title), '%')) " +
+            "AND (:genres IS NULL OR LOWER(g.name) IN (:genres)) " +
             "AND (:releaseDateFrom IS NULL OR s.releaseDate >= :releaseDateFrom) " +
             "AND (:releaseDateTo IS NULL OR s.releaseDate <= :releaseDateTo) " +
             "AND (:ratingFrom IS NULL OR s.rating >= :ratingFrom) " +
@@ -34,10 +34,14 @@ public interface SerieRepository extends JpaRepository<Serie, Long>, JpaSpecific
             "AND (:popularityFrom IS NULL OR s.popularity >= :popularityFrom) " +
             "AND (:popularityTo IS NULL OR s.popularity <= :popularityTo) " +
             "ORDER BY s.popularity DESC")
-    Page<Serie> searchSeries(String title, List<String> genres,
-                             LocalDate releaseDateFrom, LocalDate releaseDateTo,
-                             Double ratingFrom, Double ratingTo,
-                             Double popularityFrom, Double popularityTo,
+    Page<Serie> searchSeries(@Param("title") String title,
+                             @Param("genres") List<String> genres,
+                             @Param("releaseDateFrom") LocalDate releaseDateFrom,
+                             @Param("releaseDateTo") LocalDate releaseDateTo,
+                             @Param("ratingFrom") Double ratingFrom,
+                             @Param("ratingTo") Double ratingTo,
+                             @Param("popularityFrom") Double popularityFrom,
+                             @Param("popularityTo") Double popularityTo,
                              Pageable pageable);
 
 

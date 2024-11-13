@@ -65,9 +65,6 @@ public class MovieService {
         }
     }
 
-    public Movie getMovie(Long id) {
-        return movieCacheService.getMovie(id);
-    }
 
     public void syncGenres() {
         try {
@@ -103,26 +100,8 @@ public class MovieService {
                 .orElse(Collections.emptyList());
     }
 
-    private Movie mapToMovie(MovieResponse.MovieDetails movieDetails) {
-        Movie movie = new Movie();
-        movie.setId(movieDetails.getId());
-        movie.setTitle(movieDetails.getTitle());
-        movie.setDescription(movieDetails.getOverview());
-        movie.setReleaseDate(movieDetails.getReleaseDate());
-        movie.setCover("https://image.tmdb.org/t/p/original/" + movieDetails.getPosterPath());
-        movie.setBackground("https://image.tmdb.org/t/p/original" + movieDetails.getBackdropPath());
-        movie.setRating(movieDetails.getVoteAverage());
-        movie.setPopularity(movieDetails.getPopularity());
-        movie.setDuration(movieDetails.getRuntime());
-        movie.setDirector(movieDetails.getProductionCompanies().stream().map(MovieResponse.ProductionCompany::getName).collect(Collectors.joining(", ")));
-        movie.setTrailer("https://www.youtube.com/watch?v=" + getTrailer(movieDetails.getId()));
-        List<Genre> genres = movieDetails.getGenres().stream().map(g -> genreRepository.findById(g.getId()).orElse(null)).filter(Objects::nonNull).collect(Collectors.toList());
-        movie.setGenres(genres);
-
-        return movie;
-    }
-
     public void syncMovies() {
+        syncGenres();
         saveAllMovies(1, 300);
     }
 
@@ -260,24 +239,11 @@ public class MovieService {
         movieRepository.deleteById(id);
     }
 
-    public Movie getMovieById(String idParam, String film) {
-        Long id = idParam != null ? Long.parseLong(idParam) : Long.parseLong(film);
-        return movieRepository.findById(id).orElse(null);
-    }
 
     public Movie saveMovie(Movie movie) {
         return movieRepository.save(movie);
     }
 
-    public List<Movie> getTop5MoviesOfEachGenre() {
-        List<Genre> genres = genreRepository.findAll();
-        List<Movie> topMovies = new ArrayList<>();
-        genres.forEach(genre -> {
-            Page<Movie> movies = movieRepository.getBestMoviesByGenres(genre.getName(), PageRequest.of(0, 5));
-            topMovies.addAll(movies.getContent());
-        });
-        return topMovies;
-    }
 
     public Page<Movie> getMoviesByCategory(String categoryName, Pageable pageable) {
         return movieRepository.findMoviesByCategory(categoryName, pageable);
@@ -306,7 +272,4 @@ public class MovieService {
         return movieRepository.getBestMoviesByGenres(genre, pageable);
     }
 
-    public List<Movie> getMoviesByGenre(List<String> genre) {
-        return movieRepository.findByGenresIn(genre);
-    }
 }

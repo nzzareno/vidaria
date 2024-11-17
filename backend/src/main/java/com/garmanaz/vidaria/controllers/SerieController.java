@@ -8,12 +8,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -26,6 +27,7 @@ public class SerieController {
     @Autowired
     public SerieController(SerieService serieService) {
         this.serieService = serieService;
+        System.out.println("SerieController initialized with SerieService: " + serieService.getClass().getName());
     }
 
     @Transactional
@@ -35,7 +37,7 @@ public class SerieController {
             List<Serie> series = serieService.fetchSeries(type, page);
             return ResponseEntity.ok(series);
         } catch (Exception e) {
-            throw new RuntimeException("Error fetching series by type: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Series by type not found", e);
         }
     }
 
@@ -44,13 +46,17 @@ public class SerieController {
         try {
             return ResponseEntity.ok(serieService.getSeriesByGenre(genre));
         } catch (Exception e) {
-            throw new RuntimeException("Error fetching series by genre: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Series by genre not found", e);
         }
     }
 
     @GetMapping("/check/{id}")
     public ResponseEntity<Boolean> checkIfSerieExists(@PathVariable Long id) {
-        return ResponseEntity.ok(serieService.existsById(id));
+        try {
+            return ResponseEntity.ok(serieService.existsById(id));
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Serie don't exists", e);
+        }
     }
 
     @GetMapping("/search")
@@ -65,10 +71,14 @@ public class SerieController {
             @RequestParam(required = false) Double popularityTo,
             Pageable pageable) {
         try {
-            Page<Serie> series = serieService.searchSeries(title, genres, releaseDateFrom, releaseDateTo, ratingFrom, ratingTo, popularityFrom, popularityTo, pageable);
-            return new ResponseEntity<>(series, HttpStatus.OK);
+            Page<Serie> series = serieService.searchSeries(
+                    title, genres, releaseDateFrom, releaseDateTo,
+                    ratingFrom, ratingTo, popularityFrom, popularityTo, pageable);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON) // Asegura el tipo de contenido
+                    .body(series);
         } catch (Exception e) {
-            throw new RuntimeException("Error searching series: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Series not found", e);
         }
     }
 
@@ -79,7 +89,7 @@ public class SerieController {
             Page<Serie> series = serieService.getBestSeriesByGenres(genre, pageable);
             return new ResponseEntity<>(series, HttpStatus.OK);
         } catch (Exception e) {
-            throw new RuntimeException("Error fetching best series by genre: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Best Series by Genre not found", e);
         }
     }
 
@@ -89,7 +99,7 @@ public class SerieController {
             Page<Serie> series = serieService.getSeries(pageable);
             return new ResponseEntity<>(series, HttpStatus.OK);
         } catch (Exception e) {
-            throw new RuntimeException("Error fetching series: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Series not found", e);
         }
     }
 
@@ -100,31 +110,13 @@ public class SerieController {
             Page<Serie> series = serieService.getMostPopularAndTopRated(pageable);
             return new ResponseEntity<>(series, HttpStatus.OK);
         } catch (Exception e) {
-            throw new RuntimeException("Error fetching most popular and top rated series: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Popular Top Rated Series not found", e);
         }
     }
 
-    @GetMapping("/{serie}")
-    public ResponseEntity<Serie> getSerieById(@PathVariable Long serie) {
-        return ResponseEntity.ok(serieService.getSeriesById(serie));
+    @GetMapping("/{id}")
+    public ResponseEntity<Serie> getSerieById(@PathVariable Long id) {
+        System.out.println("Controller: getSerieById invoked with id: " + id);
+        return ResponseEntity.ok(serieService.getSeriesById(id));
     }
-
-    @GetMapping("/sync")
-    @Transactional
-    public ResponseEntity<String> syncSeries(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int totalSeries) {
-        try {
-            serieService.saveAllSeries(page, totalSeries);
-            return ResponseEntity.ok("Series synchronized successfully!");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while synchronizing series: " + e.getMessage());
-        }
-    }
-
-    @PostMapping
-    public ResponseEntity<Serie> saveSeries(@RequestBody Serie series) {
-        Serie savedSeries = serieService.saveSerie(series);
-        return ResponseEntity.ok(savedSeries);
-    }
-
-
 }

@@ -1,6 +1,7 @@
 package com.garmanaz.vidaria.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,6 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@ToString
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,6 +30,7 @@ public class Genre implements Serializable {
 
     @JsonBackReference
     @ManyToMany(mappedBy = "genreID")
+    @JsonIgnore
     private List<Serie> series = new ArrayList<>();
 
     public Genre(long id, String name) {

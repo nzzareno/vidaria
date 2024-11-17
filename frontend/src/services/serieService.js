@@ -102,7 +102,7 @@ export const getFeaturedSeries = async ({
     "The Rookie",
     "The Lord of the Rings: The Rings of Power",
     "FROM",
-    "The Sopranos",
+    "Outlander",
     "Rick and Morty",
   ];
 
@@ -115,7 +115,7 @@ export const getFeaturedSeries = async ({
         `${API_URL}/most-popular?page=${page}&size=${size}`
       );
       const data = await checkResponse(response);
-
+console.log(data)
       // Verificación para asegurarse de que `data` tenga la estructura esperada
       if (!data || !Array.isArray(data.content)) {
         console.warn(

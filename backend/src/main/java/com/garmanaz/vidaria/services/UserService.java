@@ -3,6 +3,7 @@ package com.garmanaz.vidaria.services;
 import com.garmanaz.vidaria.entities.AppUser;
 import com.garmanaz.vidaria.repositories.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,10 +12,10 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
 
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -22,13 +23,8 @@ public class UserService {
     public AppUser saveUser(AppUser user) {
         user.setRole(user.getRole());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-        return user;
-    }
-
-
-    public List<AppUser> getAllUsers() {
-        return userRepository.findAll();
+        AppUser savedUser = userRepository.save(user);
+        return savedUser != null ? savedUser : null;
     }
 
     public boolean checkPassword(String rawPassword, String encodedPassword) {
@@ -39,15 +35,6 @@ public class UserService {
         return userRepository.findByUsername(username).orElse(null);
     }
 
-    public void deleteUser(Long id) {
-        userRepository.deleteById(id);
-    }
 
-    public void updateUser(AppUser user) {
-        userRepository.save(user);
-    }
 
-    public String encodePassword(String password) {
-        return passwordEncoder.encode(password);
-    }
 }

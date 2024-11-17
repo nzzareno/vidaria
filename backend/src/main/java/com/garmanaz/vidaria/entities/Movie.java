@@ -58,8 +58,7 @@ public class Movie implements Serializable {
     private Category category;
 
 
-
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "movie_genre", joinColumns = @JoinColumn(name = "movie_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
     @JsonManagedReference
     private List<Genre> genres = new ArrayList<>();

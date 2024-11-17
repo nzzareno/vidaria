@@ -74,7 +74,7 @@ const Header = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.1 }}
     >
       <AnimatePresence>
         {currentContent && (
@@ -117,7 +117,7 @@ const Header = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 1 }}
+                transition={{ duration: 0.1 }}
               >
                 <h1 className="text-3xl text-white sm:text-4xl md:text-5xl lg:text-6xl font-bold">
                   {currentContent.title || "Title not available"}

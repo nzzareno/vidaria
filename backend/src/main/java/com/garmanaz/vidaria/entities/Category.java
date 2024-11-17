@@ -11,9 +11,9 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 @Builder
 @Entity
+@ToString(exclude = "movies")
 public class Category implements Serializable {
 
     @Id

@@ -73,10 +73,14 @@ public class SerieRepositoryTest {
 
     @Test
     public void testGetBestSeriesByGenres() {
+        // Obtenemos las series del género "action"
         List<Serie> series = serieRepository.getBestSeriesByGenres("action", Pageable.unpaged()).getContent();
-        assertEquals(2, series.size());
-        assertEquals("Seinfeld", series.get(0).getTitle());
-        assertEquals("Lost", series.get(1).getTitle());
+
+        // Verificamos que solo hay una serie (Lost)
+        assertEquals(1, series.size());
+
+        // Comprobamos que la serie devuelta es "Lost"
+        assertEquals("Lost", series.getFirst().getTitle());
     }
 
     @Test

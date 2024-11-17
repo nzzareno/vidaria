@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 import java.util.Objects;
 
@@ -25,13 +26,8 @@ import java.util.Objects;
 @RequestMapping("/auth")
 public class AuthController {
 
-
     private final AuthenticationManager authenticationManager;
-
-
     private final JwtTokenUtil jwtTokenUtil;
-
-
     private final UserService userService;
 
     @Autowired
@@ -44,6 +40,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody AppUser user) {
         if (userService.getUserByUsername(user.getUsername()) != null) {
+            System.out.println("User already exists: " + user.getUsername()); // Log temporal
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "User already exists"));
         }
         if (!Objects.equals(user.getUsername(), "garmanaz")) {
@@ -52,22 +49,22 @@ public class AuthController {
             user.setRole(Role.ADMIN);
         }
 
-        // if username length is less than 4 characters return bad request
-        if (user.getUsername().length() < 4) {
+        // Verificar si username es demasiado corto
+        if (user.getUsername() == null || user.getUsername().length() < 4) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Username must be at least 4 characters long"));
         }
 
-        // if password length is less than 8 characters return bad request
+        // Verificar si password es null o demasiado corto
         if (user.getPassword().length() < 8) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Password must be at least 8 characters long"));
         }
 
-        // if email is not null and does not contain an @ symbol return bad request
-        if (user.getEmail() != null && !user.getEmail().contains("@")) {
+        // Verificar si email es válido
+        if (user.getEmail() == null || !user.getEmail().contains("@")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Invalid email address"));
         }
 
-        // save the user
+        // Guardar usuario
         AppUser savedUser = userService.saveUser(user);
 
         return ResponseEntity.ok(savedUser);
@@ -75,13 +72,12 @@ public class AuthController {
 
 
     @GetMapping("/user")
-    public ResponseEntity<?> getUser(@AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
+    public ResponseEntity<?> getUser(Principal principal) {
+        if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
 
-        // Obtén el nombre de usuario desde el UserDetails
-        String username = userDetails.getUsername();
+        String username = principal.getName();
 
         AppUser user = userService.getUserByUsername(username);
         if (user == null) {
@@ -104,16 +100,6 @@ public class AuthController {
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid username or password"));
         }
-    }
-
-    @PostMapping("/test")
-    public ResponseEntity<?> testPassword(@RequestParam String username, @RequestParam String password) {
-        AppUser user = userService.getUserByUsername(username);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-        boolean matches = userService.checkPassword(password, user.getPassword());
-        return ResponseEntity.ok("Password matches: " + matches);
     }
 }
 

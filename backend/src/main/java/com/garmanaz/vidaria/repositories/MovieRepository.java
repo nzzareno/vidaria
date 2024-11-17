@@ -52,8 +52,18 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     Page<Movie> findMovieByTitleAndGenres(@Param("title") String title, @Param("genres") List<String> genres, Pageable pageable);
 
     // Obtener las mejores películas por género con carga ansiosa
-    @EntityGraph(attributePaths = {"genres", "category"})
+
     @Query("SELECT m FROM Movie m LEFT JOIN m.genres g WHERE LOWER(g.name) = LOWER(:genre) ORDER BY m.rating DESC")
     Page<Movie> getBestMoviesByGenres(@Param("genre") String genre, Pageable pageable);
 
+    Movie findByTitle(String movieName);
+
+    @Query("SELECT m FROM Movie m ORDER BY m.popularity DESC")
+    List<Movie> findFeaturedMovies();
+
+    @Query("SELECT m FROM Movie m JOIN FETCH m.genres g ORDER BY m.popularity DESC")
+    List<Movie> findAllWithGenresLimited(Pageable pageable);
+
+    @Query("SELECT DISTINCT m FROM Movie m JOIN FETCH m.genres g ORDER BY m.popularity DESC")
+    List<Movie> findAllWithUniqueGenres(Pageable pageable);
 }

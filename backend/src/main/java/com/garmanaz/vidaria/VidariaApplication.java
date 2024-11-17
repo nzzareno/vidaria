@@ -21,10 +21,16 @@ public class VidariaApplication {
         SpringApplication.run(VidariaApplication.class, args);
     }
 
+
     @Bean
     @Profile("!test")
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder.build();
     }
 
+    @Bean
+    @Profile("test")
+    public RestTemplate testRestTemplate() {
+        return new RestTemplate();
+    }
 }

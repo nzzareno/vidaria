@@ -14,7 +14,6 @@ import java.util.List;
 @Builder
 @Getter
 @Setter
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Serie implements Serializable {
@@ -61,6 +60,9 @@ public class Serie implements Serializable {
     private String status;
 
     public Serie(Long serieId, Object o, Object o1) {
+    }
+
+    public Serie(long l, String testSerie) {
     }
 }
 

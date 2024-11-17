@@ -145,10 +145,14 @@ export const searchMovies = async (filters = {}) => {
 };
 export const getFeaturedMovies = async (selectedMovieNames) => {
   try {
+    console.log(selectedMovieNames)
     const response = await fetch(
       `${API_URL}/featured?movieNames=${selectedMovieNames.join(",")}`
     );
-    return checkResponse(response);
+    const data = await checkResponse(response); 
+    console.log("Featured movies:", data);
+    return data;
+   
   } catch (error) {
     console.error("Failed to fetch featured movies:", error);
     return [];

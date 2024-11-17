@@ -5,138 +5,98 @@ import com.garmanaz.vidaria.entities.Genre;
 import com.garmanaz.vidaria.entities.Season;
 import com.garmanaz.vidaria.entities.Serie;
 import com.garmanaz.vidaria.repositories.GenreRepository;
-import com.garmanaz.vidaria.repositories.SeasonRepository;
 import com.garmanaz.vidaria.repositories.SerieRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.Setter;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class SerieService {
-
     private static final String API_URL = "https://api.themoviedb.org/3";
-    private static final Logger logger = LoggerFactory.getLogger(SerieService.class);
     private final GenreRepository genreRepository;
     private final RestTemplate restTemplate;
     private final SerieRepository serieRepository;
-    private final SeasonRepository seasonRepository;
-    private final RedisTemplate<String, String> redisTemplate;
-    private final SerieService self;
+    private final RedisTemplate<String, Serie> redisTemplate;
 
+    @Autowired
+    public SerieService(GenreRepository genreRepository, RestTemplate restTemplate, SerieRepository serieRepository, RedisTemplate<String, Serie> redisTemplate) {
+        this.genreRepository = genreRepository;
+        this.restTemplate = restTemplate;
+        this.serieRepository = serieRepository;
+        this.redisTemplate = redisTemplate;
+    }
+
+
+    @Setter
     @Value("${tmdb.api.key}")
     private String API_KEY;
 
-    @Autowired
-    public SerieService(SerieRepository serieRepository, GenreRepository genreRepository, SeasonRepository seasonRepository, RestTemplate restTemplate, @Lazy SerieService self, RedisTemplate<String, String> redisTemplate) {
-        this.serieRepository = serieRepository;
-        this.genreRepository = genreRepository;
-        this.seasonRepository = seasonRepository;
-        this.restTemplate = restTemplate;
-        this.redisTemplate = redisTemplate;
-        this.self = self;
-
-    }
-
-    public void preCacheSeriesImages() {
-        List<Serie> series = serieRepository.findAll();
-        for (Serie serie : series) {
-            String imageUrl = serie.getBackdrop(); // Precarga el poster o backdrop de la serie
-            redisTemplate.opsForValue().set("serie:" + serie.getId() + ":image", imageUrl, 1, TimeUnit.DAYS);
-        }
-    }
+    @Setter
+    @Value("${tmdb.api.url}")
+    private String apiUrl;
 
 
-    public void syncGenres() {
-        List<Genre> genres = self.getGenres();
-        for (Genre genre : genres) {
-            genreRepository.findById(genre.getId()).orElseGet(() -> genreRepository.save(genre));
-        }
-    }
-
-    @CacheEvict(value = "series", allEntries = true)
-    @Transactional
-    public void saveAllSeries(int page, int totalSeries) {
-        syncGenres();
-        AtomicInteger savedSeriesCount = new AtomicInteger();
-        int pageIndex = page;
-
-        logger.info("Iniciando sincronización de series. Página inicial: {}, Total de series a guardar: {}", page, totalSeries);
-
-        while (savedSeriesCount.get() < totalSeries) {
-            List<Serie> seriesToSave = new ArrayList<>();
-            seriesToSave.addAll(fetchSeries("popular", pageIndex));
-            seriesToSave.addAll(fetchSeries("top_rated", pageIndex));
-            seriesToSave.addAll(fetchSeries("airing_today", pageIndex));
-            seriesToSave.addAll(fetchSeries("on_the_air", pageIndex));
-
-            logger.info("Se obtuvieron {} series de la página {}.", seriesToSave.size(), pageIndex);
-
-            for (Serie serie : seriesToSave) {
-                serieRepository.findById(serie.getId()).ifPresentOrElse(existingSerie -> {
-                    existingSerie.setSeasons(serie.getSeasons());
-                    serieRepository.save(existingSerie);
-                    savedSeriesCount.getAndIncrement();
-                    logger.info("Serie actualizada: {} (ID: {}). Total series guardadas: {}", serie.getTitle(), serie.getId(), savedSeriesCount.get());
-                }, () -> {
-                    serieRepository.save(serie);
-                    for (Season season : serie.getSeasons()) {
-                        season.setSerie(serie);
-                        seasonRepository.save(season);
-                    }
-                    savedSeriesCount.getAndIncrement();
-                    logger.info("Serie guardada: {} (ID: {}). Total series guardadas: {}", serie.getTitle(), serie.getId(), savedSeriesCount.get());
-                });
-
-                if (savedSeriesCount.get() >= totalSeries) {
-                    logger.info("Se alcanzó el límite de series guardadas: {}", savedSeriesCount.get());
-                    break;
-                }
+    public void preCacheSeries() {
+        try {
+            List<Serie> series = serieRepository.findAll();
+            for (Serie serie : series) {
+                String cacheKey = "serie:" + serie.getId();
+                redisTemplate.opsForValue().set(cacheKey, serie, 1, TimeUnit.DAYS); // Guarda el objeto completo
+                System.out.println("Saved to Redis: " + cacheKey + " -> " + serie);
             }
-            pageIndex++;
+        } catch (Exception e) {
+            System.err.println("Failed to precache series in Redis: " + e.getMessage());
+
         }
-        logger.info("Sincronización de series completada. Total de series guardadas: {}", savedSeriesCount.get());
     }
 
     @Cacheable(value = "genres")
     public List<Genre> getGenres() {
-        String url = API_URL + "/genre/tv/list?api_key=" + API_KEY;
+        String url = apiUrl + "/genre/tv/list?api_key=" + API_KEY;
         ResponseEntity<SerieResponse.SerieDetails.GenreResponse> response = restTemplate.getForEntity(url, SerieResponse.SerieDetails.GenreResponse.class);
         SerieResponse.SerieDetails.GenreResponse genreResponse = response.getBody();
-        return (genreResponse != null) ? genreResponse.getGenres().stream().map(genre -> new Genre(genre.getId(), genre.getName())).toList() : Collections.emptyList();
+
+        return (genreResponse != null)
+                ? genreResponse.getGenres().stream()
+                .map(genre -> new Genre(genre.getId(), genre.getName()))
+                .toList()
+                : Collections.emptyList();
     }
 
-    @Cacheable(value = "series", key = "#id")
-    @Transactional
+    @Transactional(readOnly = true)
     public Serie getSerieDetails(Long id) {
-        String cacheKey = "serie:" + id + ":image";
-        String cachedImageUrl = redisTemplate.opsForValue().get(cacheKey);
+        String cacheKey = "serie:" + id;
+        Serie serie = redisTemplate.opsForValue().get(cacheKey); // Obtén el objeto desde Redis
 
-        Serie serie;
-        if (cachedImageUrl != null) {
+        if (serie == null) { // Si no está en Redis, búscalo en la base de datos o API
             serie = serieRepository.findById(id).orElseGet(() -> mapToSeries(fetchSerieFromApi(id)));
-            serie.setPoster(cachedImageUrl);
+            if (serie != null) {
+                Hibernate.initialize(serie.getGenreID());
+                Hibernate.initialize(serie.getSeasons());
+                redisTemplate.opsForValue().set(cacheKey, serie, 1, TimeUnit.DAYS); // Cachea el objeto completo
+                System.out.println("Cached in Redis: " + cacheKey);
+            }
         } else {
-            serie = mapToSeries(fetchSerieFromApi(id));
-            redisTemplate.opsForValue().set(cacheKey, serie.getPoster(), 1, TimeUnit.DAYS);
+            System.out.println("Loaded from Redis: " + cacheKey);
         }
+
         return serie;
     }
 
@@ -144,15 +104,12 @@ public class SerieService {
         String url = API_URL + "/tv/" + id + "?api_key=" + API_KEY;
 
         ResponseEntity<SerieResponse.SerieDetails> response = restTemplate.getForEntity(url, SerieResponse.SerieDetails.class);
-        System.out.println("Response from external API: " + response.getBody());
         return response.getBody();
     }
-
 
     public Page<Serie> getMostPopularAndTopRated(Pageable pageable) {
         return serieRepository.getMostPopularAndTopRated(pageable);
     }
-
 
     public Page<Serie> getBestSeriesByGenres(String genre, Pageable pageable) {
         return serieRepository.getBestSeriesByGenres(genre, pageable);
@@ -164,7 +121,7 @@ public class SerieService {
             return null;
         }
 
-        Serie serie = self.getSerieDetails(result.getId());
+        Serie serie = getSerieDetails(result.getId());
         if (serie != null) {
             serie.setTitle(result.getName());
             serie.setDescription(result.getOverview());
@@ -224,39 +181,6 @@ public class SerieService {
         return serie;
     }
 
-    @Transactional
-    public List<Serie> fetchSeries(String type, int page) {
-        String url = gettingCategories(type, page);
-        ResponseEntity<SerieResponse> response = restTemplate.getForEntity(url, SerieResponse.class);
-        SerieResponse serieResponse = response.getBody();
-
-        if (serieResponse != null && serieResponse.getResults() != null) {
-            List<Serie> series = serieResponse.getResults().stream()
-                    .map(this::mapToSeriesFromResult)
-                    .filter(Objects::nonNull)
-                    .toList();
-
-            // Forzar la inicialización de genreID para cada serie
-            series.forEach(serie -> serie.getGenreID().size());
-
-            return series;
-        }
-
-        return Collections.emptyList();
-    }
-
-    @Transactional
-    public String gettingCategories(String category, int pageNumber) {
-        String endpoint = switch (category) {
-            case "popular" -> "popular";
-            case "airing_today" -> "airing_today";
-            case "on_the_air" -> "on_the_air";
-            case "top_rated" -> "top_rated";
-            default -> throw new IllegalArgumentException("Invalid category: " + category);
-        };
-        return API_URL + "/tv/" + endpoint + "?api_key=" + API_KEY + "&page=" + pageNumber;
-    }
-
     public List<Serie> getSeriesByGenre(String genre) {
         String url = API_URL + "/discover/tv?api_key=" + API_KEY + "&with_genres=" + genre;
         ResponseEntity<SerieResponse> response = restTemplate.getForEntity(url, SerieResponse.class);
@@ -280,37 +204,39 @@ public class SerieService {
     }
 
     public Serie getSeriesById(Long id) {
+        System.out.println("SerieService.getSeriesById invoked");
         return serieRepository.findById(id).orElseThrow(() -> new RuntimeException("Serie not found"));
     }
 
-    @CacheEvict(value = "series", key = "#id")
-    public void deleteSerie(Long id) {
-        serieRepository.deleteById(id);
-    }
+    @Transactional
+    public List<Serie> fetchSeries(String type, int page) {
+        String url = gettingCategories(type, page);
+        ResponseEntity<SerieResponse> response = restTemplate.getForEntity(url, SerieResponse.class);
+        SerieResponse serieResponse = response.getBody();
 
-    public Serie saveSerie(Serie serie) {
-        return serieRepository.save(serie);
-    }
+        if (serieResponse != null && serieResponse.getResults() != null) {
+            List<Serie> series = serieResponse.getResults().stream()
+                    .map(this::mapToSeriesFromResult)
+                    .filter(Objects::nonNull)
+                    .toList();
 
-    public Serie updateSerie(Serie serie) {
-        Serie existingSerie = serieRepository.findById(serie.getId()).orElse(null);
+            series.forEach(serie -> serie.getGenreID().size());
 
-        if (existingSerie != null) {
-            existingSerie.setTitle(serie.getTitle());
-            existingSerie.setDescription(serie.getDescription());
-            existingSerie.setGenreID(serie.getGenreID());
-            existingSerie.setCreator(serie.getCreator());
-            existingSerie.setReleaseDate(serie.getReleaseDate());
-            existingSerie.setPoster(serie.getPoster());
-            existingSerie.setBackdrop(serie.getBackdrop());
-            existingSerie.setRating(serie.getRating());
-            existingSerie.setPopularity(serie.getPopularity());
-            existingSerie.setNumberOfSeasons(serie.getNumberOfSeasons());
-            existingSerie.setNumberOfEpisodes(serie.getNumberOfEpisodes());
-            existingSerie.setTrailer(serie.getTrailer());
-            existingSerie.setStatus(serie.getStatus());
-            return serieRepository.save(existingSerie);
+            return series;
         }
-        return null;
+
+        return Collections.emptyList();
+    }
+
+    @Transactional
+    public String gettingCategories(String category, int pageNumber) {
+        String endpoint = switch (category) {
+            case "popular" -> "popular";
+            case "airing_today" -> "airing_today";
+            case "on_the_air" -> "on_the_air";
+            case "top_rated" -> "top_rated";
+            default -> throw new IllegalArgumentException("Invalid category: " + category);
+        };
+        return API_URL + "/tv/" + endpoint + "?api_key=" + API_KEY + "&page=" + pageNumber;
     }
 }

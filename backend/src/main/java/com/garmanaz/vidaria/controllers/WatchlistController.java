@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +29,14 @@ public class WatchlistController {
             @RequestParam Long userId,
             @RequestParam(required = false) Long movieId,
             @RequestParam(required = false) Long serieId) {
-        boolean exists = watchlistService.isInWatchlist(userId, movieId, serieId);
-        Map<String, Boolean> response = new HashMap<>();
-        response.put("exists", exists);
-        return ResponseEntity.ok(response);
+        try {
+            boolean exists = watchlistService.isInWatchlist(userId, movieId, serieId);
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("exists", exists);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error checking if item is in watchlist: " + e.getMessage());
+        }
     }
 
     @PostMapping("/add")
@@ -40,17 +45,21 @@ public class WatchlistController {
             Watchlist item = watchlistService.addToWatchlist(request.getUserId(), request.getMovieId(), request.getSerieId());
             return ResponseEntity.ok(item);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error adding to watchlist: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error adding to watchlist: " + e.getMessage());
         }
     }
 
     @GetMapping("/{userId}")
     public ResponseEntity<List<Watchlist>> getWatchlist(@PathVariable Long userId) {
-        List<Watchlist> watchlist = watchlistService.getWatchlistForUser(userId);
-        if (watchlist.isEmpty()) {
-            return ResponseEntity.noContent().build();
+        try {
+            List<Watchlist> watchlist = watchlistService.getWatchlistForUser(userId);
+            if (watchlist.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(watchlist);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error fetching watchlist: " + e.getMessage());
         }
-        return ResponseEntity.ok(watchlist);
     }
 
     @DeleteMapping
@@ -68,7 +77,7 @@ public class WatchlistController {
         }
     }
 
-    // remove all watchlist and dont use a service
+
     @DeleteMapping("/clear/{userId}")
     public ResponseEntity<Map<String, String>> clearWatchlist(@PathVariable Long userId) {
         try {

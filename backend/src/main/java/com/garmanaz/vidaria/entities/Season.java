@@ -10,7 +10,6 @@ import java.io.Serializable;
 @Builder
 @Getter
 @Setter
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Season implements Serializable {

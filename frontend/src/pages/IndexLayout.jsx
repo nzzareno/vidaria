@@ -11,6 +11,8 @@ import { setFeaturedSeries } from "../redux/serieSlice";
 import { getFeaturedSeries } from "../services/serieService";
 import ModalContext from "../context/ModalContext";
 import Navbar from "../components/Navbar";
+import { RingLoader } from "react-spinners";
+import Footer from "../components/Footer";
 
 const IndexLayout = () => {
   const user = useSelector((state) => state.auth.user);
@@ -72,46 +74,56 @@ const IndexLayout = () => {
   return user ? (
     <Home />
   ) : (
-    <div className="z-10">
-      <Navbar />
-      <header className="font-maxSans">
-        <div className="relative flex bg-black min-h-screen w-full">
-          <motion.img
-            className="absolute top-0 left-0 h-full w-full object-cover object-center"
-            src={wppimgmovies}
-            alt="mimg"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 2 }}
-          />
+    <>
+      {featuredSeries.length > 1 && featuredMovies.length > 1 ? (
+        <div className="z-10">
+          <Navbar />
+          <header className="font-maxSans">
+            <div className="relative flex bg-black min-h-screen w-full">
+              <motion.img
+                className="absolute top-0 left-0 h-full w-full object-cover object-center"
+                src={wppimgmovies}
+                alt="mimg"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 2 }}
+              />
 
-          <div className="absolute backdrop-blur-[2px] inset-0 bg-gradient-to-t from-[#0A0A1A] via-black/70 to-[rgba(0,0,0,0.14)]"></div>
+              <div className="absolute backdrop-blur-[2px] inset-0 bg-gradient-to-t from-[#0A0A1A] via-black/70 to-[rgba(0,0,0,0.14)]"></div>
 
-          <div className="relative z-10 flex flex-col justify-center items-center text-center w-full cursor-default px-4 sm:px-8">
-            <h1 className="font-bold font-maxSans text-4xl sm:text-5xl md:text-6xl lg:text-8xl text-white -mb-2 sm:-mb-3">
-              vidaria
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-white">
-              DISCOVER MORE, FOR LESS
-            </p>
+              <div className="relative z-10 flex flex-col justify-center items-center text-center w-full cursor-default px-4 sm:px-8">
+                <h1 className="font-bold font-maxSans text-8xl sm:text-8xl md:text-9xl lg:text-9xl text-white -mb-2  ">
+                  vidaria
+                </h1>
+                <p className="text-xl sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">
+                  DISCOVER MORE, FOR LESS
+                </p>
 
-            <button
-              onClick={() => handleOpenModal("subscribe")}
-              className="btn py-2 px-4 sm:py-3 sm:px-5 bg-[rgb(0,43,231)] mt-4 text-white font-bold rounded-xl transition duration-150 hover:bg-[rgb(0,30,180)]"
-            >
-              START YOUR JOURNEY NOW
-            </button>
+                <button
+                  onClick={() => handleOpenModal("subscribe")}
+                  className="btn py-3 px-5 bg-[rgb(0,43,231)] mt-4 text-white font-bold rounded-xl transition duration-150 hover:bg-[rgb(0,30,180)]"
+                >
+                  START YOUR JOURNEY NOW
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <div className="px-4 sm:px-8 my-8">
+            <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-1">
+              <WatchFilmList movies={featuredMovies} />
+              <WatchSerieList series={featuredSeries} />
+            </div>
           </div>
+          <Footer />
         </div>
-      </header>
-
-      <div className="px-4 sm:px-8 my-8">
-        <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-1">
-          <WatchFilmList movies={featuredMovies} />
-          <WatchSerieList series={featuredSeries} />
+      ) : (
+        // RingLoader
+        <div className="flex items-center justify-center h-screen">
+          <RingLoader color="#0A0A1A" size={150} />
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 

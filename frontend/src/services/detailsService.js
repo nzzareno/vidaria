@@ -65,7 +65,7 @@ export const fetchSerieDetails = async (id) => {
         `Serie with ID ${id} not found in your API. Fetching from external TMDb API...`
       );
       const externalData = await fetchMovieIfNotInDB(id, "tv");
-      return { ...data, last_air_date: externalData?.last_air_date };
+      return externalData;
     }
 
     return data;
@@ -359,13 +359,12 @@ export const fetchSimilar = async (id, type) => {
 
     const data = await response.json();
 
-    // Filtrar para asegurar que solo se incluyan elementos con `backdrop_path` o `poster_path`
+    // Filtrar datos válidos
     const similarContent = data.results
       .filter(
         (item) =>
-          item.backdrop_path &&
           item.poster_path &&
-          (item.title || item.name) &&
+          (item.title || item.name || item.originalName) &&
           (item.release_date || item.first_air_date)
       )
       .map((item) => ({
@@ -376,13 +375,20 @@ export const fetchSimilar = async (id, type) => {
         backdrop_path: item.backdrop_path
           ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
           : null,
-        title: item.title || item.name,
+        title: item.title || item.name || item.originalName,
         release_date: item.release_date || item.first_air_date,
       }));
 
+    if (!similarContent.length) {
+      console.warn(`No valid similar content found for ${type} with ID ${id}`);
+    }
+
     return similarContent;
   } catch (error) {
-    console.error(`Error fetching ${type} similar content:`, error);
+    console.error(
+      `Error fetching ${type} similar content for ID ${id}:`,
+      error
+    );
     return [];
   }
 };

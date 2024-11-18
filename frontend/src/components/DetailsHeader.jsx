@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
-import { FaPlus, FaCheck } from "react-icons/fa";
+import { FaCheck, FaPlus } from "react-icons/fa";
+import { useState } from "react";
+import SuccessNotification from "./SuccessNotification";
+import ErrorNotification from "./ErrorNotification";
 import { adjustImageQuality } from "../utils/sliderSettings";
 
 const DetailsHeader = ({
@@ -17,6 +20,36 @@ const DetailsHeader = ({
   adultVerification = () => {},
   isInWatchlist = false,
 }) => {
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [showErrorNotification, setShowErrorNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+
+  // Helper para determinar el rango de años o un solo año
+  const displayYear = () => {
+    const releaseYear = details?.releaseYear;
+    const lastAirYear = details?.last_air_date?.slice(0, 4);
+
+    // Si los años de inicio y finalización son iguales, muestra solo un año
+    if (releaseYear == lastAirYear) {
+      return releaseYear;
+    }
+
+    // Caso contrario, muestra el rango de años
+    return `${releaseYear || "Unknown"} - ${lastAirYear || "Unknown"}`;
+  };
+
+  const handleAddWithNotification = () => {
+    handleAddToWatchlist();
+    setNotificationMessage("Added to your Watchlist!");
+    setShowSuccessNotification(true);
+  };
+
+  const handleRemoveWithNotification = () => {
+    handleRemoveFromWatchlist();
+    setNotificationMessage("Removed from your Watchlist!");
+    setShowErrorNotification(true);
+  };
+
   return (
     <>
       {details && (
@@ -24,15 +57,11 @@ const DetailsHeader = ({
           <div className="lg:col-span-2 space-y-6 w-full">
             <div className="flex flex-col lg:flex-row items-start space-x-0 lg:space-x-8 space-y-6 lg:space-y-0">
               <motion.img
-                src={
-                  adjustImageQuality(
-                    details?.cover || details?.poster_path,
-                    "original"
-                  ) ||
-                  `https://image.tmdb.org/t/p/original${
-                    details?.poster_path || details?.backdrop_path
-                  }`
-                }
+                src={adjustImageQuality(
+                  details?.cover ||
+                    `https://image.tmdb.org/t/p/original${details?.poster_path}`,
+                  "original"
+                )}
                 alt={details?.title || "Image not available"}
                 className="w-56 h-80 lg:w-[20rem] lg:h-full rounded-lg object-cover shadow-lg"
                 transition={{ duration: 1 }}
@@ -44,12 +73,7 @@ const DetailsHeader = ({
                 <div className="flex items-center space-x-4 text-md lg:text-lg">
                   <span>
                     {isSeries
-                      ? details?.releaseYear ===
-                        details?.last_air_date?.slice(0, 4)
-                        ? details?.releaseYear
-                        : `${
-                            details?.releaseYear || "Unknown"
-                          } - ${details?.last_air_date?.slice(0, 4)}`
+                      ? displayYear() // Usa la lógica personalizada para series
                       : details?.releaseYear || "Unknown"}
                   </span>
                   {((!isSeries && details?.runtime) || details?.duration) && (
@@ -92,8 +116,8 @@ const DetailsHeader = ({
                   <motion.button
                     onClick={
                       isInWatchlist
-                        ? handleRemoveFromWatchlist
-                        : handleAddToWatchlist
+                        ? handleRemoveWithNotification
+                        : handleAddWithNotification
                     }
                     className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-400 hover:border-white transition duration-200"
                     style={{
@@ -135,8 +159,11 @@ const DetailsHeader = ({
             </div>
           </div>
           <div className="-mt-4 lg:mt-0">
-            <div className="font-bold text-base lg:text-lg mb-2">Director:</div>
-            <div>{director || "Unknown"}</div>
+            {details?.director && (
+              <div className="font-bold text-base lg:text-lg mt-4">
+                Director: {details?.director || director}
+              </div>
+            )}
             {cast.length > 0 && (
               <>
                 <div className="font-bold text-base lg:text-lg mt-4 mb-2">
@@ -162,6 +189,22 @@ const DetailsHeader = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Notificación de éxito */}
+      {showSuccessNotification && (
+        <SuccessNotification
+          message={notificationMessage}
+          onClose={() => setShowSuccessNotification(false)}
+        />
+      )}
+
+      {/* Notificación de error */}
+      {showErrorNotification && (
+        <ErrorNotification
+          message={notificationMessage}
+          onClose={() => setShowErrorNotification(false)}
+        />
       )}
     </>
   );

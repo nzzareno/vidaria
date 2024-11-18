@@ -6,6 +6,10 @@ import {
   clearWatchlist as clearWatchlistService,
   fetchSerie,
 } from "../services/detailsService";
+import {
+  fetchSeriePosterPath,
+  fetchMoviePosterPath,
+} from "../services/serieService";
 import { useNavigate } from "react-router-dom";
 import { FaTrash } from "react-icons/fa";
 import { motion } from "framer-motion";
@@ -61,26 +65,44 @@ const Watchlist = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchWatchlist = async () => {
-      try {
-        const userData = await fetchUserData();
-        if (!userData?.id) return;
+  const fetchPosterPath = async (item) => {
+    if (item.movie) {
+      const posterPath = await fetchMoviePosterPath(item.movie.id);
+      return posterPath || item.movie.cover;
+    } else if (item.serie) {
+      const posterPath = await fetchSeriePosterPath(item.serie.id);
+      return posterPath || item.serie.poster;
+    }
+    return null;
+  };
 
-        const response = await getWatchlist(userData.id);
+  const fetchWatchlist = async () => {
+    try {
+      const userData = await fetchUserData();
+      if (!userData?.id) return;
 
-        if (response && response.length >= 0) {
-          setWatchlist(response);
-        } else {
-          setWatchlist([]);
-        }
-      } catch (e) {
-        console.error("Your watchlist is empty", e);
+      const response = await getWatchlist(userData.id);
+
+      if (response && response.length >= 0) {
+        // Replace paths with valid poster paths
+        const updatedWatchlist = await Promise.all(
+          response.map(async (item) => {
+            const posterPath = await fetchPosterPath(item);
+            return {
+              ...item,
+              posterPath,
+            };
+          })
+        );
+
+        setWatchlist(updatedWatchlist);
+      } else {
+        setWatchlist([]);
       }
-    };
-
-    fetchWatchlist();
-  }, [isInWatchlist]);
+    } catch (e) {
+      console.error("Error fetching watchlist:", e);
+    }
+  };
 
   const formatDate = async (item) => {
     if (item.movie) {
@@ -95,9 +117,6 @@ const Watchlist = () => {
         new Date(response.last_air_date).getFullYear()
       );
 
-      console.log("startYear", startYear);
-      console.log("endYear", endYear);
-
       return startYear === endYear
         ? `${startYear}`
         : `${startYear} - ${endYear}`;
@@ -105,6 +124,10 @@ const Watchlist = () => {
 
     return "N/A";
   };
+
+  useEffect(() => {
+    fetchWatchlist();
+  }, [isInWatchlist]);
 
   useEffect(() => {
     const formatWatchlistDates = async () => {
@@ -141,15 +164,6 @@ const Watchlist = () => {
 
         {formattedWatchlist.length > 0 ? (
           <>
-            <motion.button
-              onClick={handleClearWatchlist}
-              className="mb-8 px-4 py-2 bg-red-700 text-white font-semibold rounded hover:bg-red-600 transition"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-            >
-              Clear Watchlist
-            </motion.button>
             <motion.div
               className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 w-full max-w-7xl"
               initial="hidden"
@@ -179,9 +193,7 @@ const Watchlist = () => {
                   }
                 >
                   <img
-                    src={`https://image.tmdb.org/t/p/original${
-                      item.movie?.cover || item.serie?.poster
-                    }`}
+                    src={item.posterPath}
                     alt={item.movie?.title || item.serie?.title || "No title"}
                     className="w-full h-64 object-cover rounded-lg shadow-lg"
                   />
@@ -192,10 +204,8 @@ const Watchlist = () => {
                     <span className="text-sm font-semibold text-gray-300 mt-1">
                       {item.formattedDate}
                     </span>
-
-                    {/* Icono de Basura en la esquina superior derecha */}
                     <button
-                      className="absolute -bottom-1 right-0 p-2 text-red-500 bg-gray-900   hover:bg-red-900 hover:text-white rounded-full transition duration-300"
+                      className="absolute -bottom-1 right-0 p-2 text-red-500 bg-gray-900 hover:bg-red-900 hover:text-white rounded-full transition duration-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveItem(item);
@@ -206,7 +216,16 @@ const Watchlist = () => {
                   </div>
                 </motion.div>
               ))}
-            </motion.div>
+            </motion.div>{" "}
+            <motion.button
+              onClick={handleClearWatchlist}
+              className="mt-12 px-12 py-3 bg-red-700 text-white font-semibold rounded hover:bg-red-600 transition"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              Clear Watchlist
+            </motion.button>
           </>
         ) : (
           <motion.div

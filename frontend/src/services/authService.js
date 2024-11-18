@@ -1,7 +1,5 @@
 // src/services/authService.js
 
-import { Navigate } from "react-router-dom";
-
 const API_URL = `${import.meta.env.VITE_BACKEND_URL}/auth`;
 
 // Función para registrar al usuario
@@ -67,7 +65,7 @@ export const fetchUserData = async () => {
     try {
       if (isTokenExpired(token)) {
         console.error("Token ha expirado!");
-
+        localStorage.removeItem("token");
         return null; // O puedes redirigir al usuario a la página de inicio de sesión.
       }
 
@@ -80,7 +78,7 @@ export const fetchUserData = async () => {
 
       if (!response.ok) {
         localStorage.removeItem("token");
-        Navigate("/index");
+
         throw new Error("Token inválido o expirado.");
       }
 

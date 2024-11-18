@@ -10,6 +10,7 @@ import RealNavbar from "../components/RealNavbar.jsx";
 import Header from "../components/Header.jsx";
 import { getMoviesByGenre } from "../services/movieService.js"; // Cambiado a "getMoviesByGenre"
 import { Link } from "react-router-dom";
+import Footer from "../components/Footer.jsx";
 
 const Movies = () => {
   const [moviesByGenre, setMoviesByGenre] = useState({});
@@ -115,7 +116,7 @@ const Movies = () => {
                   {moviesByGenre[genre].map((movie) => (
                     <motion.div
                       key={movie.id}
-                      className="px-2"
+                      className="px-2 pb-2"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.2 }}
@@ -138,6 +139,7 @@ const Movies = () => {
               </div>
             ))}
           </motion.section>
+          <Footer />
         </div>
       )}
     </>

@@ -24,11 +24,12 @@ import {
   getFeaturedSeries,
   getTopSeries,
   getHeaderSeries,
-  fetchPosterPath,
+  fetchSeriePosterPath,
 } from "../services/serieService";
 import Slider from "react-slick";
 import { createSliderSettings } from "../utils/sliderSettings";
 import { NextArrow, PrevArrow } from "../utils/sliderUtils";
+import Footer from "../components/Footer";
 
 const Series = () => {
   const dispatch = useDispatch();
@@ -80,25 +81,28 @@ const Series = () => {
     const fetchData = async () => {
       dispatch(setLoadingSerie(true));
       setAllLoaded(false);
-
+  
+      const seenIds = new Set(); // Set para rastrear series únicas
+  
       try {
         const titles = [
-          "breaking bad",
-          "game of thrones",
-          "stranger things",
-          "the mandalorian",
           "the sopranos",
+          "the wire",
+          "game of thrones",
+          "lost",
+          "gotham",
+          "succession",
           "the witcher",
           "money heist",
           "dark",
-          "chernobyl",
+          "banshee",
           "the boys",
         ];
-
+  
         const headerSeriesData = await getHeaderSeries();
         setHeaderSerie(headerSeriesData[0]);
         setTopRatedSeries(headerSeriesData.slice(1));
-
+  
         const [
           animation,
           family,
@@ -124,29 +128,22 @@ const Series = () => {
           getFeaturedSeries(),
           getTopSeries(titles),
         ]);
-
-        // Helper function to update poster paths
+  
         const updatePosterPath = async (series) => {
           return Promise.all(
-            series.map(async (item) => {
-              const correctPoster = await fetchPosterPath(item.id);
-              console.log(
-                `Series ID: ${item.id}, Title: ${item.title} - ${
-                  correctPoster
-                    ? "Fetched new poster path"
-                    : "Failed to fetch poster path"
-                }`
-              );
-              return { ...item, poster: correctPoster || item.poster };
-            })
+            series
+              .filter((item) => !seenIds.has(item.id)) // Filtrar series ya vistas
+              .map(async (item) => {
+                seenIds.add(item.id); // Marcar como vista
+                const correctPoster = await fetchSeriePosterPath(item.id);
+                return { ...item, poster: correctPoster || item.poster };
+              })
           );
         };
-
-        // Update each category and set them to the store
+  
+        // Actualizar categorías con series únicas
         dispatch(setCrimeSeries(await updatePosterPath(crime?.content || [])));
-        dispatch(
-          setComedySeries(await updatePosterPath(comedy?.content || []))
-        );
+        dispatch(setComedySeries(await updatePosterPath(comedy?.content || [])));
         dispatch(setDramaSeries(await updatePosterPath(drama?.content || [])));
         dispatch(
           setActionAndAventureSeries(
@@ -156,22 +153,15 @@ const Series = () => {
         dispatch(
           setDocumentalSeries(await updatePosterPath(documental?.content || []))
         );
-        dispatch(
-          setWesternSeries(await updatePosterPath(western?.content || []))
-        );
-        dispatch(
-          setMysterySeries(await updatePosterPath(mystery?.content || []))
-        );
+        dispatch(setWesternSeries(await updatePosterPath(western?.content || [])));
+        dispatch(setMysterySeries(await updatePosterPath(mystery?.content || [])));
         dispatch(
           setAnimationSeries(await updatePosterPath(animation?.content || []))
         );
-        dispatch(
-          setFamilySeries(await updatePosterPath(family?.content || []))
-        );
+        dispatch(setFamilySeries(await updatePosterPath(family?.content || [])));
         dispatch(setFeaturedSeries(await updatePosterPath(featured || [])));
         dispatch(setTopSeries(await updatePosterPath(topSeries || [])));
-
-        // Set allLoaded to true after all categories are fully loaded
+  
         setAllLoaded(true);
       } catch (error) {
         console.error("Error fetching series:", error);
@@ -179,9 +169,10 @@ const Series = () => {
         dispatch(setLoadingSerie(false));
       }
     };
-
+  
     fetchData();
   }, [dispatch]);
+  
 
   useEffect(() => {
     const handleResize = () => {
@@ -411,6 +402,7 @@ const Series = () => {
               "text-2xl md:text-3xl font-bold mb-4 text-white"
             )}
           </div>
+          <Footer />
         </div>
       )}
     </>

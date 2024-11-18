@@ -30,16 +30,19 @@ public class SerieController {
         System.out.println("SerieController initialized with SerieService: " + serieService.getClass().getName());
     }
 
-    @Transactional
     @GetMapping("/type/{type}")
-    public ResponseEntity<?> getSeriesByType(@PathVariable @NonNull String type, @RequestParam(defaultValue = "1") int page) {
+    public ResponseEntity<?> getSeriesByType(
+            @PathVariable @NonNull String type,
+            @RequestParam(defaultValue = "3") int maxPages
+    ) {
         try {
-            List<Serie> series = serieService.fetchSeries(type, page);
+            List<Serie> series = serieService.fetchSeries(type, maxPages);
             return ResponseEntity.ok(series);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Series by type not found", e);
         }
     }
+
 
     @GetMapping("/genre/{genre}")
     public ResponseEntity<List<Serie>> getSeriesByGenre(@PathVariable @NonNull String genre) {
@@ -118,5 +121,15 @@ public class SerieController {
     public ResponseEntity<Serie> getSerieById(@PathVariable Long id) {
         System.out.println("Controller: getSerieById invoked with id: " + id);
         return ResponseEntity.ok(serieService.getSeriesById(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteSerie(@PathVariable Long id) {
+        try {
+            serieService.deleteSerie(id);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Serie not found", e);
+        }
     }
 }

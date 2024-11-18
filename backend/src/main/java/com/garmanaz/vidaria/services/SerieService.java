@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -209,23 +210,23 @@ public class SerieService {
     }
 
     @Transactional
-    public List<Serie> fetchSeries(String type, int page) {
-        String url = gettingCategories(type, page);
-        ResponseEntity<SerieResponse> response = restTemplate.getForEntity(url, SerieResponse.class);
-        SerieResponse serieResponse = response.getBody();
+    public List<Serie> fetchSeries(String type, int maxPages) {
+        List<Serie> allSeries = new ArrayList<>();
+        for (int page = 1; page <= maxPages; page++) {
+            String url = gettingCategories(type, page);
+            ResponseEntity<SerieResponse> response = restTemplate.getForEntity(url, SerieResponse.class);
+            SerieResponse serieResponse = response.getBody();
 
-        if (serieResponse != null && serieResponse.getResults() != null) {
-            List<Serie> series = serieResponse.getResults().stream()
-                    .map(this::mapToSeriesFromResult)
-                    .filter(Objects::nonNull)
-                    .toList();
-
-            series.forEach(serie -> serie.getGenreID().size());
-
-            return series;
+            if (serieResponse != null && serieResponse.getResults() != null) {
+                List<Serie> series = serieResponse.getResults().stream()
+                        .map(this::mapToSeriesFromResult)
+                        .filter(Objects::nonNull)
+                        .toList();
+                allSeries.addAll(series);
+            }
         }
-
-        return Collections.emptyList();
+        allSeries.forEach(serie -> serie.getGenreID().size());
+        return allSeries;
     }
 
     @Transactional
@@ -238,5 +239,9 @@ public class SerieService {
             default -> throw new IllegalArgumentException("Invalid category: " + category);
         };
         return API_URL + "/tv/" + endpoint + "?api_key=" + API_KEY + "&page=" + pageNumber;
+    }
+
+    public void deleteSerie(Long id) {
+        serieRepository.deleteById(id);
     }
 }

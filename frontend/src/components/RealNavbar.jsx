@@ -28,7 +28,7 @@ const RealNavbar = () => {
     };
   }, []);
 
-  const navbarStyle = "bg-[#0A0A1A]";
+  const navbarStyle = "bg-[#0A0A1A] font-montserrat font-bold text-sm";
 
   return (
     <nav

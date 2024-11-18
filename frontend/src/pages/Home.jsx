@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { setLoading, setError } from "../redux/movieSlice";
 import Slider from "react-slick";
 import {
@@ -7,11 +7,12 @@ import {
   gettingPopularHeaderMovies,
 } from "../services/movieService";
 import {
-  getPopularSeries,
   getHeaderSeries,
   getSeriesByType,
-  fetchPosterPath,
+  fetchSeriePosterPath,
+  fetchMoviePosterPath,
 } from "../services/serieService";
+
 import { RingLoader } from "react-spinners";
 import { motion } from "framer-motion";
 import Header from "../components/Header";
@@ -22,6 +23,7 @@ import {
 } from "../utils/sliderSettings.jsx";
 import RealNavbar from "../components/RealNavbar.jsx";
 import { Link } from "react-router-dom";
+import Footer from "../components/Footer.jsx";
 
 const Home = () => {
   const [popularMovies, setPopularMovies] = useState([]);
@@ -31,10 +33,9 @@ const Home = () => {
   const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [headerMovies, setHeaderMovies] = useState([]);
-  const [headerSeries, setHeaderSeries] = useState([]); // Series for the header
-  const [popularSeries, setPopularSeries] = useState([]); // State for popular series
+  const [headerSeries, setHeaderSeries] = useState([]);
   const [topRatedSeries, setTopRatedSeries] = useState([]);
-  const [onTheAirSeries, setOnTheAirSeries] = useState([]);
+  const [popularSeries, setPopularSeries] = useState([]);
   const [allImagesLoaded, setAllImagesLoaded] = useState(false);
   const [currentSlide, setCurrentSlide] = useState({
     popular: 0,
@@ -42,6 +43,7 @@ const Home = () => {
     trending: 0,
     nowPlaying: 0,
     topRated: 0,
+    popularSeries: false,
   });
   const [isNextDisabled, setIsNextDisabled] = useState({
     popular: false,
@@ -49,11 +51,11 @@ const Home = () => {
     trending: false,
     nowPlaying: false,
     topRated: false,
+    popularSeries: false,
   });
   const [windowSize, setWindowSize] = useState(window.innerWidth);
 
   const dispatch = useDispatch();
-  const { loading } = useSelector((state) => state.movies);
 
   useEffect(() => {
     const handleResize = () => {
@@ -64,6 +66,7 @@ const Home = () => {
         trending: 0,
         nowPlaying: 0,
         topRated: 0,
+        popularSeries: 0,
       });
       setIsNextDisabled({
         popular: false,
@@ -71,6 +74,7 @@ const Home = () => {
         trending: false,
         nowPlaying: false,
         topRated: false,
+        popularSeries: false,
       });
     };
 
@@ -89,9 +93,8 @@ const Home = () => {
         trending: trendingMovies,
         nowPlaying: nowPlayingMovies,
         topRated: topRatedMovies,
-        popularSeries: popularSeries,
         topRatedSeries: topRatedSeries,
-        onTheAirSeries: onTheAirSeries,
+        popularSeries: popularSeries, // Incluye Popular Series aquí
       }[category];
 
       const totalItems = categoryItems.length;
@@ -105,9 +108,8 @@ const Home = () => {
       trendingMovies,
       nowPlayingMovies,
       topRatedMovies,
-      popularSeries,
       topRatedSeries,
-      onTheAirSeries,
+      popularSeries, // Asegúrate de incluir Popular Series aquí
       windowSize,
     ]
   );
@@ -116,7 +118,7 @@ const Home = () => {
     async (category, setMovies, pages = 3) => {
       try {
         const movies = [];
-        for (let page = 1; page <= pages; page++) {
+        for (let page = 2; page <= pages; page++) {
           const response = await getMoviesByCategory(category, {
             page,
             size: 20,
@@ -135,6 +137,8 @@ const Home = () => {
   useEffect(() => {
     const loadAllContent = async () => {
       dispatch(setLoading(true));
+      setAllImagesLoaded(false);
+
       try {
         const [
           popularMoviesData,
@@ -144,53 +148,62 @@ const Home = () => {
           trendingMoviesData,
           headerMoviesData,
           headerSeriesData,
-          popularSeriesData,
           topRatedSeriesData,
-          onTheAirSeriesData,
+          popularSeriesData,
         ] = await Promise.all([
-          fetchMoviesByCategory("popular", setPopularMovies, 2),
-          fetchMoviesByCategory("top_rated", setTopRatedMovies, 2),
-          fetchMoviesByCategory("upcoming", setUpcomingMovies, 2),
-          fetchMoviesByCategory("now_playing", setNowPlayingMovies, 2),
-          fetchMoviesByCategory("trending", setTrendingMovies, 2),
-          gettingPopularHeaderMovies(), // Popular movies for the header
-          getHeaderSeries(), // Header series for combining with movies
-          getPopularSeries(), // Popular series for "Popular Series" section
-          getSeriesByType("top_rated"), // Top Rated Series
-          getSeriesByType("on_the_air"), // On The Air Series
+          fetchMoviesByCategory("popular", setPopularMovies),
+          fetchMoviesByCategory("top_rated", setTopRatedMovies),
+          fetchMoviesByCategory("upcoming", setUpcomingMovies),
+          fetchMoviesByCategory("now_playing", setNowPlayingMovies),
+          fetchMoviesByCategory("trending", setTrendingMovies),
+          gettingPopularHeaderMovies(),
+          getHeaderSeries(),
+          getSeriesByType("top_rated"),
+          getSeriesByType("popular"),
         ]);
 
-        // Obtener y asignar el poster_path para topRatedSeries y onTheAirSeries
         const topRatedSeriesWithPosters = await Promise.all(
           topRatedSeriesData.map(async (series) => {
-            const poster = await fetchPosterPath(series.id);
+            const poster = await fetchSeriePosterPath(series.id);
             return { ...series, poster };
           })
         );
 
         const onTheAirSeriesWithPosters = await Promise.all(
-          onTheAirSeriesData.map(async (series) => {
-            const poster = await fetchPosterPath(series.id);
+          popularSeriesData.map(async (series) => {
+            const poster = await fetchSeriePosterPath(series.id);
             return { ...series, poster };
           })
         );
 
-        setPopularMovies(popularMoviesData || []);
-        setTopRatedMovies(topRatedMoviesData || []);
+        const popularMoviesWithPosters = await Promise.all(
+          popularMoviesData.map(async (movie) => {
+            const poster = await fetchMoviePosterPath(movie.id);
+            return { ...movie, poster };
+          })
+        );
+
+        const topRatedMoviesWithPosters = await Promise.all(
+          topRatedMoviesData.map(async (movie) => {
+            const poster = await fetchMoviePosterPath(movie.id);
+            return { ...movie, poster };
+          })
+        );
+
+        setPopularMovies(popularMoviesWithPosters || []);
+        setTopRatedMovies(topRatedMoviesWithPosters || []);
         setUpcomingMovies(upcomingMoviesData || []);
         setNowPlayingMovies(nowPlayingMoviesData || []);
         setTrendingMovies(trendingMoviesData || []);
         setHeaderMovies(headerMoviesData?.content || []);
         setHeaderSeries(headerSeriesData || []);
-        setPopularSeries(popularSeriesData || []);
         setTopRatedSeries(topRatedSeriesWithPosters || []);
-        setOnTheAirSeries(onTheAirSeriesWithPosters || []);
+        setPopularSeries(onTheAirSeriesWithPosters || []);
         setActiveHeader(true);
-
-        // Esperar a que todas las imágenes carguen
         setAllImagesLoaded(true);
       } catch (error) {
         console.error("Error loading content:", error);
+        dispatch(setError(error.message));
       } finally {
         dispatch(setLoading(false));
       }
@@ -217,7 +230,7 @@ const Home = () => {
       key={categoryKey}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 2, delay: 0.5 }}
       className="space-y-10 mt-6 px-4 md:px-8"
     >
       {categoryItems.length > 0 && (
@@ -272,7 +285,7 @@ const Home = () => {
 
   return (
     <>
-      {loading || !allImagesLoaded ? (
+      {!allImagesLoaded ? (
         <div className="flex justify-center items-center min-h-screen bg-[#0A0A1A]">
           <RingLoader color="#FF0000" size={200} />
         </div>
@@ -282,59 +295,38 @@ const Home = () => {
           <Header
             headerMovies={headerMovies}
             headerSeries={headerSeries}
-            isCombinedPage={true}
+            isCombinedPage
             activeHeader={activeHeader}
           />
           <div className="space-y-6 px-4 md:px-8 mt-4 text-white">
-            {renderSliderSection(
-              "Popular Movies",
-              popularMovies,
-              "popular",
-              "text-2xl md:text-3xl font-bold mb-4"
-            )}
+            {renderSliderSection("Popular Movies", popularMovies, "popular")}
             {renderSliderSection(
               "Top Rated Movies",
               topRatedMovies,
-              "topRated",
-              "text-2xl md:text-3xl font-bold mb-4"
+              "topRated"
             )}
-            {renderSliderSection(
-              "Upcoming Movies",
-              upcomingMovies,
-              "upcoming",
-              "text-2xl md:text-3xl font-bold mb-4"
-            )}
+            {renderSliderSection("Upcoming Movies", upcomingMovies, "upcoming")}
             {renderSliderSection(
               "Now Playing Movies",
               nowPlayingMovies,
-              "nowPlaying",
-              "text-2xl md:text-3xl font-bold mb-4"
+              "nowPlaying"
             )}
-            {renderSliderSection(
-              "Trending Movies",
-              trendingMovies,
-              "trending",
-              "text-2xl md:text-3xl font-bold mb-4"
-            )}
-            {renderSliderSection(
-              "Popular Series",
-              popularSeries?.content || [],
-              "popularSeries",
-              "text-2xl md:text-3xl font-bold mb-4"
-            )}
+            {renderSliderSection("Trending Movies", trendingMovies, "trending")}
             {renderSliderSection(
               "Top Rated Series",
               topRatedSeries,
-              "topRatedSeries",
-              "text-2xl md:text-3xl font-bold mb-4"
+              "topRatedSeries"
             )}
             {renderSliderSection(
-              "On The Air Series",
-              onTheAirSeries,
-              "onTheAirSeries",
-              "text-2xl md:text-3xl font-bold mb-4"
+              "Popular Series",
+              popularSeries
+                .filter((item) => item.poster) // Filtra solo series con pósteres válidos
+                .map((item) => ({ ...item, poster: item.poster })),
+              "popularSeries", // Asegúrate de que esta clave coincida con el estado
+              "text-2xl md:text-3xl font-bold mb-4 text-white"
             )}
           </div>
+          <Footer />
         </div>
       )}
     </>

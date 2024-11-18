@@ -27,7 +27,10 @@ import ModalContext from "../context/ModalContext";
 import SimilarContentSlider from "../components/SimilarContentSlider";
 import Reviews from "../components/Reviews";
 import DetailsHeader from "../components/DetailsHeader";
-import { fetchPosterPath } from "../services/serieService";
+import {
+  fetchMoviePosterPath,
+  fetchSeriePosterPath,
+} from "../services/serieService";
 
 const adultVerification = (adult) => (adult ? "18+" : "13+");
 const formatRating = (rating) => (rating ? rating.toFixed(1) : "N/A");
@@ -104,16 +107,23 @@ const Details = () => {
 
           setStreamingLinks(streamingData || []);
 
-          const filteredSimilarData = (similarData || [])
-            .filter(
-              (item) => item.backdrop_path || item.backdrop || item.background
-            )
-            .map((item) => ({
-              ...item,
-              backdrop_path: item.backdrop_path
-                ? item.backdrop_path
-                : item.background || item.backdrop,
-            }));
+          // Filtrar contenido similar con enlaces de streaming
+          const enrichedSimilarContent = await Promise.all(
+            similarData.map(async (item) => {
+              const links = await fetchStreamingLinks(item.id, externalType);
+              return { ...item, streamingLinks: links };
+            })
+          );
+
+          const filteredSimilarContent = enrichedSimilarContent.filter(
+            (item) => item.streamingLinks && item.streamingLinks.length > 0
+          );
+
+          setSimilarContent(filteredSimilarContent);
+
+          const posterPath = isSeries
+            ? await fetchSeriePosterPath(id)
+            : await fetchMoviePosterPath(id);
 
           const executiveProducer = crewData
             .filter((member) => member.job === "Executive Producer")
@@ -134,7 +144,7 @@ const Details = () => {
               ? directorData.name
               : executiveProducer?.name || "Unknown"
           );
-          
+
           setDetails({
             ...data,
             adult: data.adult ? "18+" : "13+",
@@ -147,7 +157,7 @@ const Details = () => {
             numberOfSeasons: data.numberOfSeasons || data.number_of_seasons,
             numberOfEpisodes:
               data.numberOfEpisodes || data.number_of_episodes || "Unknown",
-            poster_path: await fetchPosterPath(id),
+            poster_path: posterPath || data.poster_path,
           });
 
           dispatch(setMovieTagline(taglineData));
@@ -155,7 +165,6 @@ const Details = () => {
           setTagline(taglineData);
           setCast(castData.slice(0, 15));
           setReviews(reviewsData.slice(0, 3));
-          setSimilarContent(filteredSimilarData);
         }
       } catch (error) {
         console.error("Error fetching details:", error);
@@ -235,7 +244,7 @@ const Details = () => {
       navigate(`/movies/${item.id}`, { state: { type: "movies" } });
     }
   };
-   
+
   const backgroundUrl =
     details?.background ||
     details?.backdrop ||
@@ -282,7 +291,7 @@ const Details = () => {
                         link.provider.toLowerCase() === "amazon prime video"
                           ? "https://www.primevideo.com"
                           : `https://www.${link.provider.toLowerCase()}.com`;
-                      
+
                       return (
                         <a
                           key={index}

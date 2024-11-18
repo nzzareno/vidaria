@@ -11,7 +11,7 @@ const Footer = () => {
       className="text-white bg-[#0A0A1A] text-center p-14"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ delay: 3, duration: 1 }} // Retraso de 3 segundos y animación de 1 segundo
+      transition={{ delay: 0.5, duration: 1 }}
     >
       <div className="flex flex-col items-center ">
         <strong className="text-xl">

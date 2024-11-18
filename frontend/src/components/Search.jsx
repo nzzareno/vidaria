@@ -157,7 +157,7 @@ const Search = () => {
               <div className="w-full flex items-center bg-gray-800 p-2">
                 <input
                   type="text"
-                  className="px-2 w-full bg-gray-800 text-white focus:outline-none"
+                  className="px-2 w-full bg-gray-800 text-white font-montserrat font-bold text-sm focus:outline-none"
                   placeholder="Search movies or series..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}

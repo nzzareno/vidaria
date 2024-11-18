@@ -6,10 +6,11 @@ const API_URL = `${import.meta.env.VITE_BACKEND_URL}/series`;
 const VITE_TMDB_SERIES_DETAILS_URL = `${
   import.meta.env.VITE_TMDB_SERIES_DETAILS_URL
 }`;
+const API_BASE = `${import.meta.env.VITE_TMDB_DETAILS}`;
 const API_KEY = `${import.meta.env.VITE_API_KEY}`;
 
 // Fetches the poster_path from the external TMDb API
-export const fetchPosterPath = async (id) => {
+export const fetchSeriePosterPath = async (id) => {
   try {
     const response = await fetch(
       `${VITE_TMDB_SERIES_DETAILS_URL}/${id}?api_key=${API_KEY}&language=en-US`
@@ -21,10 +22,43 @@ export const fetchPosterPath = async (id) => {
     }
 
     const data = await response.json();
-    const poster = "https://image.tmdb.org/t/p/w1280" + data.poster_path;
-    return poster;
+
+    if (data && data.poster_path) {
+      return `https://image.tmdb.org/t/p/w500${data.poster_path}`;
+    }
+
+    console.error(`No poster_path found for series with ID ${id}`);
+    return null;
   } catch (error) {
-    console.error(`Error fetching poster path for series ID ${id}:`, error);
+    console.error(
+      `Error fetching poster path for series with ID ${id}:`,
+      error
+    );
+    return null;
+  }
+};
+
+export const fetchMoviePosterPath = async (id) => {
+  try {
+    const response = await fetch(
+      `${API_BASE}movie/${id}?api_key=${API_KEY}&language=en-US`
+    );
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch poster for movie ID ${id}`);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (data && data.poster_path) {
+      return `https://image.tmdb.org/t/p/w300${data.poster_path}`;
+    } else {
+      console.warn(`No poster_path found for movie ID ${id}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`Error fetching poster path for movie ID ${id}:`, error);
     return null;
   }
 };
@@ -99,11 +133,11 @@ export const getFeaturedSeries = async ({
 } = {}) => {
   const featuredTitles = [
     "Seinfeld",
-    "The Rookie",
+    "The Simpsons",
     "The Lord of the Rings: The Rings of Power",
-    "FROM",
+    "CSI: Crime Scene Investigation",
     "Outlander",
-    "Rick and Morty",
+    "Family Guy",
   ];
 
   let featuredSeries = [];
@@ -115,7 +149,7 @@ export const getFeaturedSeries = async ({
         `${API_URL}/most-popular?page=${page}&size=${size}`
       );
       const data = await checkResponse(response);
-console.log(data)
+      console.log(data);
       // Verificación para asegurarse de que `data` tenga la estructura esperada
       if (!data || !Array.isArray(data.content)) {
         console.warn(
@@ -157,7 +191,7 @@ console.log(data)
 export const getSeriesByType = async (type) => {
   try {
     const response = await fetch(
-      `http://localhost:8081/series/type/${type}?api_key=${API_KEY}`
+      `http://localhost:8081/series/type/${type}?api_key=${API_KEY}&size=10`
     );
     return checkResponse(response);
   } catch (error) {

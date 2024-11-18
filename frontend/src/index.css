@@ -19,6 +19,28 @@
   padding: 0;
 }
 
+body {
+  background-color: #0A0A1A; /* Fondo del cuerpo */
+  overflow-y: auto; /* Asegura que el scroll vertical esté activo */
+}
+
+/* Estiliza el scroll en navegadores compatibles */
+body::-webkit-scrollbar {
+  width: 10px; /* Ancho de la barra de scroll */
+}
+
+body::-webkit-scrollbar-track {
+  background: #000000; /* Fondo de la pista */
+}
+
+body::-webkit-scrollbar-thumb {
+  background: rgb(170, 73, 73); /* Color del pulgar (scroll) */
+  border-radius: 10px; /* Bordes redondeados */
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #666; /* Color del pulgar al pasar el mouse */
+}
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;

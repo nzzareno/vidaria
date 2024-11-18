@@ -26,6 +26,7 @@ const movieSlice = createSlice({
       state.selectedMovie = action.payload;
     },
     setLoading: (state, action) => {
+      console.log("setLoading action:", action.payload);
       state.loading = action.payload;
     },
     setError: (state, action) => {

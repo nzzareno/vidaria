@@ -158,9 +158,9 @@ const DetailsHeader = ({
             </div>
           </div>
           <div className="-mt-4 lg:mt-0">
-            {details?.director && (
+            {details?.director   && (
               <div className="font-bold text-base lg:text-lg mt-4">
-                Director: {details?.director || director}
+                Director: {details.director.name || director}
               </div>
             )}
             {cast.length > 0 && (

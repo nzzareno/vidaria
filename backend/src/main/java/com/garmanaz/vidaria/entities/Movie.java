@@ -65,14 +65,14 @@ public class Movie implements Serializable {
     private Double popularity;
 
     @Schema(description = "Category of the movie")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id", nullable = false)
     @JsonManagedReference
     private Category category;
 
 
     @Schema(description = "Genres of the movie")
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "movie_genre", joinColumns = @JoinColumn(name = "movie_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
     @JsonManagedReference
     private List<Genre> genres = new ArrayList<>();

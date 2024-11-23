@@ -7,8 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 @Entity
@@ -29,15 +28,16 @@ public class Genre implements Serializable {
     private String name;
 
     @JsonBackReference
-    @ManyToMany(mappedBy = "genres")
+    @ManyToMany(mappedBy = "genres", fetch = FetchType.LAZY)
     @Schema(description = "Movies that belong to the genre")
     private List<Movie> movies = new ArrayList<>();
 
     @Schema(description = "Series that belong to the genre")
     @JsonBackReference
-    @ManyToMany(mappedBy = "genreID")
+    @ManyToMany(mappedBy = "genreID", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Serie> series = new ArrayList<>();
+
 
     public Genre(long id, String name) {
         this.id = id;

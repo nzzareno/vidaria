@@ -207,11 +207,26 @@ public class AuthController {
 
 
     @GetMapping("/reset-password-link")
-    public ResponseEntity<?> handleResetPasswordLink(@RequestParam String token) {
+    public ResponseEntity<Void> handleResetPasswordLink(@RequestParam String token) {
         boolean isValid = userService.validateResetToken(token);
         if (isValid) {
-            logger.info("Enviando mensaje STOMP al cliente: {}", token);
+
             messagingTemplate.convertAndSend("/topic/token-validated", Map.of("success", true, "token", token));
+
+
+            String redirectUrl = "http://localhost:5173/verification-success?token=" + token;
+            return ResponseEntity.status(HttpStatus.FOUND).header("Location", redirectUrl).build();
+        } else {
+
+            String errorRedirectUrl = "http://localhost:5173/404";
+            return ResponseEntity.status(HttpStatus.FOUND).header("Location", errorRedirectUrl).build();
+        }
+    }
+
+    @GetMapping("/validate-token")
+    public ResponseEntity<?> validateToken(@RequestParam String token) {
+        boolean isValid = userService.validateResetToken(token);
+        if (isValid) {
             return ResponseEntity.ok(Map.of("message", "Token is valid"));
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

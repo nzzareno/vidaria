@@ -21,6 +21,7 @@ import "slick-carousel/slick/slick-theme.css";
 import { Provider } from "react-redux";
 import store from "./redux/store";
 import { ModalProvider } from "./context/ModalContext";
+import VerificationPage from "./pages/VerificationPage";
 
 function App() {
   return (
@@ -116,6 +117,7 @@ function AppContent() {
             </PrivateRoute>
           }
         />
+        <Route path="/verification-success" element={<VerificationPage />} />
         <Route
           path="/series/:id"
           element={

@@ -15,16 +15,13 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
 
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository , PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-
+        this.passwordEncoder = passwordEncoder;
     }
 
     public AppUser saveUser(AppUser user) {

@@ -104,14 +104,12 @@ const Navbar = () => {
       reconnectDelay: 5000, // Reintentos cada 5 segundos
       heartbeatIncoming: 4000, // Heartbeats entrantes
       heartbeatOutgoing: 4000, // Heartbeats salientes
-      debug: (msg) => console.log("STOMP Debug:", msg),
     });
 
     stompClient.onConnect = () => {
-      console.log("WebSocket conectado con éxito.");
       stompClient.subscribe("/topic/token-validated", (message) => {
         const data = JSON.parse(message.body);
-        console.log("Mensaje recibido:", data);
+
         if (data.success) {
           setResetTokenValidated(true);
           setResetToken(data.token);
@@ -133,7 +131,6 @@ const Navbar = () => {
 
     return () => {
       stompClient.deactivate();
-      console.log("WebSocket desconectado.");
     };
   }, []);
 
@@ -144,7 +141,6 @@ const Navbar = () => {
   useEffect(() => {
     if (resetTokenValidated && forgotPasswordStepRef.current !== 3) {
       setForgotPasswordStep(3); // Cambia al paso de restablecimiento de contraseña
-      console.log("Paso actualizado a 3");
     }
   }, [resetTokenValidated]);
 
@@ -157,15 +153,6 @@ const Navbar = () => {
     if (isModalOpen) document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen]);
-
-  useEffect(() => {
-    console.log("Paso actual del flujo:", forgotPasswordStep);
-  }, [forgotPasswordStep]);
-
-  useEffect(() => {
-    console.log("resetTokenValidated:", resetTokenValidated);
-    console.log("forgotPasswordStep:", forgotPasswordStep);
-  }, [resetTokenValidated, forgotPasswordStep]);
 
   const handleOpenSignIn = () => {
     handleOpenModal("login");
@@ -296,7 +283,6 @@ const Navbar = () => {
 
       if (response.ok) {
         setForgotPasswordStep(2); // Cambia al loader de espera
-        console.log("Reset link enviado. Esperando validación del token...");
       } else {
         const errorMessage = data.error || "Email not found. Please try again.";
         setFormErrors((prev) => ({ ...prev, email: errorMessage }));
@@ -321,9 +307,6 @@ const Navbar = () => {
       return; // Detén la ejecución si la contraseña no es válida
     }
 
-    console.log("Token enviado:", resetToken);
-    console.log("Nueva contraseña enviada:", newPassword);
-
     try {
       const response = await fetch(
         `http://localhost:8081/auth/reset-password`,
@@ -336,7 +319,6 @@ const Navbar = () => {
 
       const data = await response.json();
       if (response.ok) {
-        console.log("Respuesta del servidor:", data);
         setPasswordChanged(true); // Muestra la notificación de éxito
         setIsModalOpen(false); // Cierra el modal
         setForgotPasswordStep(1); // Reinicia el flujo

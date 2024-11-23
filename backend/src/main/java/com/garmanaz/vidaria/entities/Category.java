@@ -28,7 +28,7 @@ public class Category implements Serializable {
     private String name;
 
     @Schema(description = "Movies that belong to the category")
-    @OneToMany(mappedBy = "category")
+    @OneToMany(mappedBy = "category",fetch = FetchType.LAZY)
     @JsonBackReference
     private List<Movie> movies;
 

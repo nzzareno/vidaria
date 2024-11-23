@@ -3,8 +3,10 @@ package com.garmanaz.vidaria.utils;
 import com.garmanaz.vidaria.entities.Movie;
 import com.garmanaz.vidaria.entities.Serie;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -12,8 +14,12 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.web.servlet.LocaleResolver;
+import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
+import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 
 import java.time.Duration;
+import java.util.Locale;
 
 
 @Configuration
@@ -30,6 +36,7 @@ public class RedisConfig {
                 .cacheDefaults(config)
                 .build();
     }
+
 
     @Bean
     public RedisTemplate<String, Serie> serieRedisTemplate(RedisConnectionFactory redisConnectionFactory) {

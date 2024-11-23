@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { fab } from "@fortawesome/free-brands-svg-icons";
-import { motion } from "framer-motion"; // Importa framer-motion
+import { motion } from "framer-motion";  
 
 library.add(fab);
 

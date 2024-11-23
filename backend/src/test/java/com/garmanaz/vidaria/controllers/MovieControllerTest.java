@@ -58,8 +58,6 @@ public class MovieControllerTest {
     @MockBean
     private RedisTemplate<String, String> redisTemplate;
 
-
-
     @Test
     void searchMoviesTest() throws Exception {
         String title = "Terminator";
@@ -157,33 +155,6 @@ public class MovieControllerTest {
         verify(movieService, times(1)).getPaginatedMovies(pageable);
     }
 
-    @Test
-    void getPaginatedMoviesTest() throws Exception {
-        Pageable pageable = PageRequest.of(0, 10);
-
-        Movie terminator = Movie.builder()
-                .id(1L)
-                .title("Terminator")
-                .category(Category.builder().name("Action").build())
-                .build();
-
-        Movie forrestGump = Movie.builder()
-                .id(2L)
-                .title("Forrest Gump")
-                .category(Category.builder().name("Drama").build())
-                .build();
-
-        Page<Movie> myMoviePage = new PageImpl<>(List.of(terminator, forrestGump), pageable, 2);
-
-        when(movieService.getPaginatedMovies(pageable)).thenReturn(myMoviePage);
-
-        mockMvc.perform(get("/movies/paginated").with(csrf())
-                        .param("page", "0")
-                        .param("size", "10"))
-                .andExpect(status().isOk());
-
-        verify(movieService, times(1)).getPaginatedMovies(pageable);
-    }
 
     @Test
     void getMovieByIdTest() throws Exception {

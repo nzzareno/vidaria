@@ -71,7 +71,7 @@ public class UserControllerTest {
         mockMvc.perform(post("/auth/register").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(user)))
-                .andExpect(status().isOk())
+                .andExpect(status().is(201))
                 .andExpect(jsonPath("$.username").value("john"))
                 .andExpect(jsonPath("$.email").value("gar@gmail.com"))
                 .andExpect(jsonPath("$.role").value("USER"));

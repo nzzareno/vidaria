@@ -82,7 +82,7 @@ const Series = () => {
       dispatch(setLoadingSerie(true));
       setAllLoaded(false);
   
-      const seenIds = new Set(); // Set para rastrear series únicas
+      const seenIds = new Set();  
   
       try {
         const titles = [
@@ -132,16 +132,16 @@ const Series = () => {
         const updatePosterPath = async (series) => {
           return Promise.all(
             series
-              .filter((item) => !seenIds.has(item.id)) // Filtrar series ya vistas
+              .filter((item) => !seenIds.has(item.id))  
               .map(async (item) => {
-                seenIds.add(item.id); // Marcar como vista
+                seenIds.add(item.id);  
                 const correctPoster = await fetchSeriePosterPath(item.id);
                 return { ...item, poster: correctPoster || item.poster };
               })
           );
         };
   
-        // Actualizar categorías con series únicas
+    
         dispatch(setCrimeSeries(await updatePosterPath(crime?.content || [])));
         dispatch(setComedySeries(await updatePosterPath(comedy?.content || [])));
         dispatch(setDramaSeries(await updatePosterPath(drama?.content || [])));

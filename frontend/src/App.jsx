@@ -25,7 +25,12 @@ import { ModalProvider } from "./context/ModalContext";
 function App() {
   return (
     <Provider store={store}>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatRoutes: true,
+        }}
+      >
         <ModalProvider>
           <AppContent />
         </ModalProvider>
@@ -40,7 +45,6 @@ function AppContent() {
     !!localStorage.getItem("token")
   );
 
-  // Detecta cambios en `localStorage`
   useEffect(() => {
     const handleStorageChange = () => {
       const token = localStorage.getItem("token");

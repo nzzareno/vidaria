@@ -1,4 +1,3 @@
-// store/store.js
 import { createStore, combineReducers } from "redux";
 import authReducer from "./authSlice";
 import movieReducer from "./movieSlice";

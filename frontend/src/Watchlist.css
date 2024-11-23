@@ -1,40 +1,37 @@
-/* Watchlist.css */
+/* .watchlist-item {
+  position: relative;
+  overflow: hidden;
+}
 
-.watchlist-item {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .heart-icon {
-    transition: transform 0.3s ease, color 0.3s ease;
-  }
-  
-  .heart-icon:hover {
+.heart-icon {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.heart-icon:hover {
+  transform: scale(1.2) rotate(15deg);
+  color: #ff4b4b;
+}
+
+.heart-icon:active {
+  animation: heartBreak 0.6s ease forwards;
+}
+
+@keyframes heartBreak {
+  0% {
     transform: scale(1.2) rotate(15deg);
-    color: #ff4b4b;
   }
-  
-  .heart-icon:active {
-    animation: heartBreak 0.6s ease forwards;
+  25% {
+    transform: scale(1) rotate(-15deg);
   }
-  
-  @keyframes heartBreak {
-    0% {
-      transform: scale(1.2) rotate(15deg);
-    }
-    25% {
-      transform: scale(1) rotate(-15deg);
-    }
-    50% {
-      transform: scale(1.2) rotate(15deg);
-    }
-    100% {
-      opacity: 0;
-      transform: scale(0.5) rotate(-45deg);
-    }
+  50% {
+    transform: scale(1.2) rotate(15deg);
   }
-  
-  .watchlist-item:hover .heart-icon {
-    animation: none;
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-45deg);
   }
-  
+}
+
+.watchlist-item:hover .heart-icon {
+  animation: none;
+} */

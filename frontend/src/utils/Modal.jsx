@@ -1,5 +1,3 @@
-// Modal.jsx
-
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -40,7 +38,6 @@ const Modal = ({ isOpen, onClose, title, authorName, avatar, children }) => {
               ✕
             </button>
 
-            {/* Condicional para mostrar el título o el avatar */}
             {authorName && avatar ? (
               <div className="flex items-center space-x-4 pb-4">
                 <img
@@ -54,7 +51,6 @@ const Modal = ({ isOpen, onClose, title, authorName, avatar, children }) => {
               <h2 className="text-2xl font-bold text-white pb-3">{title}</h2>
             )}
 
-            {/* Contenido del modal con desplazamiento */}
             <div className="mt-5 text-white text-sm md:text-base leading-relaxed overflow-y-auto max-h-[60vh]">
               {children}
             </div>

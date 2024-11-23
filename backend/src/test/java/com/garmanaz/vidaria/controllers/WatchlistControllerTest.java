@@ -80,7 +80,7 @@ public class WatchlistControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk()).andReturn();
+                .andExpect(status().is(201)).andReturn();
 
         verify(watchlistService).addToWatchlist(request.getUserId(), request.getMovieId(), request.getSerieId());
     }

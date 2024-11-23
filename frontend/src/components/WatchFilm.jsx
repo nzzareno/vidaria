@@ -1,11 +1,15 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { fetchSeriePosterPath, fetchMoviePosterPath } from "../services/serieService";
+import {
+  fetchSeriePosterPath,
+  fetchMoviePosterPath,
+} from "../services/serieService";
 
 const WatchFilm = ({ movie, isSeries = true }) => {
   const [posterPath, setPosterPath] = useState(null);
 
-  const genreName = movie.genres?.length > 0 ? movie.genres[0].name : "No genre";
+  const genreName =
+    movie.genres?.length > 0 ? movie.genres[0].name : "No genre";
 
   const animationVariants = {
     hidden: { opacity: 0, scale: 0.8 },
@@ -13,16 +17,14 @@ const WatchFilm = ({ movie, isSeries = true }) => {
   };
 
   useEffect(() => {
-    // Fetch the correct poster path
     const fetchPoster = async () => {
       if (movie.poster_path) {
-        // If poster_path is already available
-        setPosterPath(`https://image.tmdb.org/t/p/original${movie.poster_path}`);
+        setPosterPath(
+          `https://image.tmdb.org/t/p/original${movie.poster_path}`
+        );
       } else if (movie.cover) {
-        // If cover is already available
         setPosterPath(movie.cover);
       } else {
-        // Fetch from TMDb API
         const fetchedPoster = isSeries
           ? await fetchSeriePosterPath(movie.id)
           : await fetchMoviePosterPath(movie.id);
@@ -42,7 +44,6 @@ const WatchFilm = ({ movie, isSeries = true }) => {
       variants={animationVariants}
       transition={{ duration: 0.5 }}
     >
-      {/* Image with hover effect */}
       {posterPath ? (
         <motion.img
           className="h-96 w-full object-cover grayscale-0 hover:grayscale filter transition-all duration-[1200ms] ease-in-out brightness-125 contrast-125"
@@ -55,10 +56,8 @@ const WatchFilm = ({ movie, isSeries = true }) => {
         </div>
       )}
 
-      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-50 hover:opacity-75 transition-opacity duration-[2000ms] ease-in-out pointer-events-none" />
 
-      {/* Film info */}
       <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-60 p-2 text-white text-center transition-colors duration-[2000ms] ease-in-out hover:bg-opacity-80">
         <h2 className="text-md sm:text-lg font-light font-afacadFlux transition-all duration-[2000ms] ease-in-out">
           {genreName}

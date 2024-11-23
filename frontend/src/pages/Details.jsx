@@ -107,7 +107,7 @@ const Details = () => {
 
           setStreamingLinks(streamingData || []);
 
-          // Filtrar contenido similar con enlaces de streaming
+ 
           const enrichedSimilarContent = await Promise.all(
             similarData.map(async (item) => {
               const links = await fetchStreamingLinks(item.id, externalType);
@@ -157,7 +157,11 @@ const Details = () => {
             numberOfSeasons: data.numberOfSeasons || data.number_of_seasons,
             numberOfEpisodes:
               data.numberOfEpisodes || data.number_of_episodes || "Unknown",
-            poster_path: posterPath || data.poster_path,
+            poster_path:
+              posterPath ||
+              data.poster_path ||
+              data.cover ||
+              "https://image.tmdb.org/t/p/original" + data?.cover,
           });
 
           dispatch(setMovieTagline(taglineData));

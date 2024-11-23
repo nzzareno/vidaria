@@ -14,19 +14,17 @@ const movieSlice = createSlice({
   },
   reducers: {
     setMovies: (state, action) => {
-      console.log("Movies being set:", action.payload);
       state.movies = action.payload;
       state.loading = false;
       state.error = null;
     },
     setFeaturedMovies: (state, action) => {
-      state.featuredMovies = action.payload; // Actualiza las películas destacadas
+      state.featuredMovies = action.payload;
     },
     setSelectedMovie: (state, action) => {
       state.selectedMovie = action.payload;
     },
     setLoading: (state, action) => {
-      console.log("setLoading action:", action.payload);
       state.loading = action.payload;
     },
     setError: (state, action) => {

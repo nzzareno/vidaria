@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { FaSearch, FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { searchMovies } from "../services/movieService"; // API interna
-import { searchSeries } from "../services/serieService"; // API interna
+import { searchMovies } from "../services/movieService";
+import { searchSeries } from "../services/serieService";
 import { Link } from "react-router-dom";
 
-const VITE_API_KEY = import.meta.env.VITE_API_KEY; // Reemplaza con tu clave de TMDB
+const VITE_API_KEY = import.meta.env.VITE_API_KEY;
 
 const Search = () => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isIconVisible, setIsIconVisible] = useState(true); // Control para el ícono de búsqueda
+  const [isIconVisible, setIsIconVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1120);
   const inputRef = useRef(null);
 
@@ -29,7 +29,7 @@ const Search = () => {
   const handleClose = () => {
     setIsExpanded(false);
     setQuery("");
-    setTimeout(() => setIsIconVisible(true), 200); // Muestra el ícono después de la animación
+    setTimeout(() => setIsIconVisible(true), 200);
   };
 
   useEffect(() => {
@@ -56,19 +56,21 @@ const Search = () => {
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (!query) {
+      const trimmedQuery = query.trim(); // Remover espacios al inicio y al final
+
+      if (!trimmedQuery) {
         setResults([]);
         return;
       }
 
       try {
-        const movies = await searchMovies({ title: query });
-        const series = await searchSeries({ title: query });
+        const movies = await searchMovies({ title: trimmedQuery });
+        const series = await searchSeries({ title: trimmedQuery });
         const tmdbMoviesResponse = await fetch(
-          `https://api.themoviedb.org/3/search/movie?api_key=${VITE_API_KEY}&query=${query}`
+          `https://api.themoviedb.org/3/search/movie?api_key=${VITE_API_KEY}&query=${trimmedQuery}`
         );
         const tmdbSeriesResponse = await fetch(
-          `https://api.themoviedb.org/3/search/tv?api_key=${VITE_API_KEY}&query=${query}`
+          `https://api.themoviedb.org/3/search/tv?api_key=${VITE_API_KEY}&query=${trimmedQuery}`
         );
 
         const tmdbMovies = await tmdbMoviesResponse.json();
@@ -97,6 +99,7 @@ const Search = () => {
           })),
         ];
 
+        // Filtrar resultados con poster y título
         const filteredResults = combinedResults.filter(
           (item) =>
             item.poster_path &&
@@ -104,8 +107,23 @@ const Search = () => {
             (item.release_date || item.first_air_date)
         );
 
-        setResults(filteredResults);
-        console.log("Resultados de búsqueda:", filteredResults);
+        // Ordenar por similitud en título y luego por calificación (rating)
+        const sortedResults = filteredResults.sort((a, b) => {
+          const ratingDifference =
+            (b.vote_average || 0) - (a.vote_average || 0);
+          const titleSimilarityDifference =
+            getTitleSimilarity(b, trimmedQuery) -
+            getTitleSimilarity(a, trimmedQuery);
+
+          // Priorizar por título más similar y luego por mayor rating
+          if (titleSimilarityDifference !== 0) {
+            return titleSimilarityDifference;
+          } else {
+            return ratingDifference;
+          }
+        });
+
+        setResults(sortedResults);
       } catch (error) {
         console.error("Error fetching search results:", error);
       }
@@ -118,6 +136,18 @@ const Search = () => {
     return () => clearTimeout(timeoutId);
   }, [query]);
 
+  // Función para calcular la similitud del título (más coincidencias con el término de búsqueda tienen mayor valor)
+  const getTitleSimilarity = (item, query) => {
+    const title = (item.title || item.name || "").toLowerCase();
+    const searchQuery = query.toLowerCase();
+
+    // Calcula cuántas veces el término de búsqueda está incluido en el título
+    if (title.includes(searchQuery)) {
+      return searchQuery.length / title.length; // Similitud proporcional al tamaño del término
+    }
+    return 0;
+  };
+
   return (
     <div className="relative flex items-center">
       <div className="absolute right-0 flex items-center">
@@ -125,7 +155,7 @@ const Search = () => {
           <FaSearch
             onClick={() => {
               setIsExpanded(true);
-              setIsIconVisible(false); // Oculta el ícono al abrir el input
+              setIsIconVisible(false);
             }}
             className={`text-white cursor-pointer hover:text-gray-400 transition ${
               isExpanded ? "hidden" : "block"
@@ -215,6 +245,7 @@ const Search = () => {
                         {new Date(
                           item.release_date || item.first_air_date
                         ).getFullYear()}
+                        {item.media_type === "tv" ? " (TV)" : ""}
                       </p>
                     </div>
                   </div>

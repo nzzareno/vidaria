@@ -11,10 +11,9 @@ const Header = ({
   isCombinedPage = false,
   activeHeader,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0); // Usaremos un solo índice
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [allContentLoaded, setAllContentLoaded] = useState(false);
 
-  // Obtener contenido actual según el tipo de página
   const currentContent = isSeriesPage
     ? headerSeries[currentIndex]
     : isMoviesPage
@@ -33,7 +32,6 @@ const Header = ({
   };
 
   useEffect(() => {
-    // Validar que las listas no estén vacías
     if (
       (isSeriesPage && !headerSeries.length) ||
       (isMoviesPage && !headerMovies.length) ||
@@ -42,15 +40,13 @@ const Header = ({
       return;
     }
 
-    // Configurar intervalo para cambiar contenido
     const interval = setInterval(() => {
       setAllContentLoaded(false);
 
       setTimeout(() => {
-        setAllContentLoaded(true); // Volver a cargar después de la transición
+        setAllContentLoaded(true);
       }, 1500);
 
-      // Incrementar índice según el tipo de página
       setCurrentIndex((prevIndex) => {
         if (isSeriesPage) {
           return (prevIndex + 1) % headerSeries.length;
@@ -66,7 +62,7 @@ const Header = ({
       });
     }, 5000);
 
-    return () => clearInterval(interval); // Limpiar intervalo al desmontar
+    return () => clearInterval(interval);
   }, [
     headerMovies.length,
     headerSeries.length,
@@ -76,24 +72,35 @@ const Header = ({
   ]);
 
   if (!currentContent) {
-    return <div className="h-full w-full bg-[#0A0A1A]"></div>; // Fallback para contenido vacío
+    return <div className="h-full w-full bg-[#0A0A1A]"></div>;
   }
+
+  const handlePlayClick = () => {
+    console.log(currentContent);
+    if (currentContent?.trailerUrl || currentContent?.trailer) {
+      window.open(
+        currentContent.trailerUrl || currentContent.trailer,
+        "_blank"
+      );
+    } else {
+      console.error("Trailer URL not available");
+    }
+  };
 
   return (
     <AnimatePresence mode="wait">
       <motion.header
-        key={currentContent.id} // Clave única para cada contenido
+        key={currentContent.id}
         className="relative h-[50vh] md:h-[80vh] w-full mt-16 overflow-hidden bg-[#0A0A1A]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }} // Sincronizar salida completa
+        exit={{ opacity: 0 }}
         transition={{ duration: 1.5, ease: "easeInOut" }}
       >
         {!activeHeader && (
           <div className="absolute inset-0 bg-[#0A0A1A] animate-pulse"></div>
         )}
 
-        {/* Imagen de fondo */}
         <div style={{ width: "100%", height: "100%" }}>
           <motion.img
             src={adjustImageQuality(
@@ -107,11 +114,9 @@ const Header = ({
           />
         </div>
 
-        {/* Gradientes */}
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#0A0A1A] via-black/70 to-transparent"></div>
         <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#0A0A1A] to-transparent"></div>
 
-        {/* Contenido del header */}
         {allContentLoaded && (
           <motion.div
             className="absolute bottom-8 left-0 z-20 max-w-lg md:max-w-xl lg:max-w-3xl p-2 text-left"
@@ -128,16 +133,19 @@ const Header = ({
             </p>
 
             <div className="mt-6 space-x-4">
-              <button className="bg-red-600 text-white px-6 py-3 rounded-lg shadow hover:bg-red-500 transition-all">
+              <button
+                onClick={handlePlayClick}
+                className="bg-red-600 text-white px-6 py-3 rounded-lg shadow hover:bg-red-500 transition-all"
+              >
                 Play
               </button>
               {currentContent && (
                 <Link
                   to={`/${
-                    isSeriesPage ||
-                    (isCombinedPage &&
-                      currentContent ===
-                        headerSeries[currentIndex % headerSeries.length])
+                    currentContent.media_type === "tv" ||
+                    headerSeries.some(
+                      (series) => series.id === currentContent.id
+                    )
                       ? "series"
                       : "movies"
                   }/${currentContent.id}`}

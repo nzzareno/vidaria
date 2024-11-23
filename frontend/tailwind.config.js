@@ -9,6 +9,7 @@ export default {
         afacadFlux: ["Afacad Flux"],
         notoSansJapanese: ["Noto Sans JP"],
         maxSans: ["Max Sans"],
+        lobster: ["Lobster"],
       },
     },
   },

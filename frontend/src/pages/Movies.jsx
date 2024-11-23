@@ -8,13 +8,13 @@ import { NextArrow, PrevArrow } from "../utils/sliderUtils";
 import { createSliderSettings } from "../utils/sliderSettings.jsx";
 import RealNavbar from "../components/RealNavbar.jsx";
 import Header from "../components/Header.jsx";
-import { getMoviesByGenre } from "../services/movieService.js"; // Cambiado a "getMoviesByGenre"
+import { getMoviesByGenre } from "../services/movieService.js";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer.jsx";
 
 const Movies = () => {
   const [moviesByGenre, setMoviesByGenre] = useState({});
-  const [headerMovies, setHeaderMovies] = useState([]); // Estado para las películas del header
+  const [headerMovies, setHeaderMovies] = useState([]);
   const [loading, setLoadingState] = useState(false);
   const [currentSlide, setCurrentSlide] = useState({});
   const [isNextDisabled, setIsNextDisabled] = useState({});
@@ -54,9 +54,8 @@ const Movies = () => {
         setMoviesByGenre((prev) => ({ ...prev, [genreName]: movies }));
         setLoadingState(false);
 
-        // Agrega algunas películas de cada género a `headerMovies`
         if (movies.length > 0) {
-          setHeaderMovies((prev) => [...prev, ...movies.slice(0, 5)]); // Solo los primeros 5 de cada género
+          setHeaderMovies((prev) => [...prev, ...movies.slice(0, 5)]);
         }
       } catch (error) {
         dispatch(setError(error.message));
@@ -67,7 +66,7 @@ const Movies = () => {
     const genres = ["Action", "Comedy", "Drama", "Mystery", "Horror"];
 
     genres.forEach((genre) => {
-      fetchMoviesByGenre(genre, 2); // Puedes ajustar la cantidad de páginas
+      fetchMoviesByGenre(genre, 2);
     });
 
     return () => {

@@ -21,7 +21,6 @@ const IndexLayout = () => {
   const dispatch = useDispatch();
   const { handleOpenModal } = useContext(ModalContext);
 
-  // Fetch de películas solo si el usuario no está autenticado
   useEffect(() => {
     if (!user) {
       const fetchMovies = async () => {
@@ -51,7 +50,6 @@ const IndexLayout = () => {
     }
   }, [dispatch, user]);
 
-  // Fetch de series solo si el usuario no está autenticado
   useEffect(() => {
     if (!user) {
       const fetchFeaturedSeries = async () => {

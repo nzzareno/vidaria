@@ -24,17 +24,14 @@ const DetailsHeader = ({
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
 
-  // Helper para determinar el rango de años o un solo año
   const displayYear = () => {
     const releaseYear = details?.releaseYear;
     const lastAirYear = details?.last_air_date?.slice(0, 4);
 
-    // Si los años de inicio y finalización son iguales, muestra solo un año
     if (releaseYear == lastAirYear) {
       return releaseYear;
     }
 
-    // Caso contrario, muestra el rango de años
     return `${releaseYear || "Unknown"} - ${lastAirYear || "Unknown"}`;
   };
 
@@ -58,11 +55,13 @@ const DetailsHeader = ({
             <div className="flex flex-col lg:flex-row items-start space-x-0 lg:space-x-8 space-y-6 lg:space-y-0">
               <motion.img
                 src={adjustImageQuality(
-                  details?.cover ||
-                    `https://image.tmdb.org/t/p/original${details?.poster_path}`,
+                  details?.poster ||
+                    details?.poster_path ||
+                    details?.cover ||
+                    "https://via.placeholder.com/300x450?text=No+Image+Available",
                   "original"
                 )}
-                alt={details?.title || "Image not available"}
+                alt={details?.title || details?.name || "Image not available"}
                 className="w-56 h-80 lg:w-[20rem] lg:h-full rounded-lg object-cover shadow-lg"
                 transition={{ duration: 1 }}
               />
@@ -73,7 +72,7 @@ const DetailsHeader = ({
                 <div className="flex items-center space-x-4 text-md lg:text-lg">
                   <span>
                     {isSeries
-                      ? displayYear() // Usa la lógica personalizada para series
+                      ? displayYear()
                       : details?.releaseYear || "Unknown"}
                   </span>
                   {((!isSeries && details?.runtime) || details?.duration) && (

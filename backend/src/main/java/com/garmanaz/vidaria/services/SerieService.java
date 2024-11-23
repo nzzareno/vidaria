@@ -225,9 +225,20 @@ public class SerieService {
                 allSeries.addAll(series);
             }
         }
-        allSeries.forEach(serie -> serie.getGenreID().size());
+
+        // Inicializa todas las colecciones perezosas antes de retornarlas
+        allSeries.forEach(serie -> {
+            if (serie.getGenreID() != null) {
+                Hibernate.initialize(serie.getGenreID());
+            }
+            if (serie.getSeasons() != null) {
+                Hibernate.initialize(serie.getSeasons());
+            }
+        });
+
         return allSeries;
     }
+
 
     @Transactional
     public String gettingCategories(String category, int pageNumber) {

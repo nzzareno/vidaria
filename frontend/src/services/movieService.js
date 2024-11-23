@@ -31,7 +31,6 @@ export const getMoviesByGenre = async (
   genreName,
   params = { page: 1, size: 20 }
 ) => {
-  // Realiza la solicitud utilizando el nombre del género en la URL
   const response = await axios.get(
     `${API_URL}/best/${genreName.toLowerCase()}`,
     {
@@ -127,7 +126,6 @@ export const searchMovies = async (filters = {}) => {
     const response = await fetch(`${API_URL}/search?${params}`);
     const data = await checkResponse(response);
 
-    // Add media_type to each movie result
     if (data && data.content) {
       return {
         ...data,
@@ -145,14 +143,13 @@ export const searchMovies = async (filters = {}) => {
 };
 export const getFeaturedMovies = async (selectedMovieNames) => {
   try {
-    console.log(selectedMovieNames)
+   
     const response = await fetch(
       `${API_URL}/featured?movieNames=${selectedMovieNames.join(",")}`
     );
-    const data = await checkResponse(response); 
-    console.log("Featured movies:", data);
-    return data;
+    const data = await checkResponse(response);
    
+    return data;
   } catch (error) {
     console.error("Failed to fetch featured movies:", error);
     return [];

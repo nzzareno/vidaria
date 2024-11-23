@@ -1,15 +1,10 @@
 const API_URL = `${import.meta.env.VITE_BACKEND_URL}/series`;
-
-// const VITE_TMDB_DETAILS_URL = import.meta.env.VITE_TMDB_DETAILS;
-// const VITE_TMDB_API_KEY = import.meta.env.VITE_API_KEY;
-
 const VITE_TMDB_SERIES_DETAILS_URL = `${
   import.meta.env.VITE_TMDB_SERIES_DETAILS_URL
 }`;
 const API_BASE = `${import.meta.env.VITE_TMDB_DETAILS}`;
 const API_KEY = `${import.meta.env.VITE_API_KEY}`;
 
-// Fetches the poster_path from the external TMDb API
 export const fetchSeriePosterPath = async (id) => {
   try {
     const response = await fetch(
@@ -25,10 +20,9 @@ export const fetchSeriePosterPath = async (id) => {
 
     if (data && data.poster_path) {
       return `https://image.tmdb.org/t/p/w500${data.poster_path}`;
+    } else {
+      return null;
     }
-
-    console.error(`No poster_path found for series with ID ${id}`);
-    return null;
   } catch (error) {
     console.error(
       `Error fetching poster path for series with ID ${id}:`,
@@ -91,9 +85,8 @@ export const getTopSeries = async (titles) => {
       const response = await fetch(`${API_URL}/search?title=${title}`);
       const seriesData = await checkResponse(response);
 
-      // Verifica si la búsqueda encontró resultados
       if (seriesData && seriesData.content && seriesData.content.length > 0) {
-        seriesResults.push(seriesData.content[0]); // Asume que el primer resultado es el deseado
+        seriesResults.push(seriesData.content[0]);
       } else {
         console.warn(`No series found for title: ${title}`);
       }
@@ -105,7 +98,6 @@ export const getTopSeries = async (titles) => {
   return seriesResults;
 };
 
-// serieService.js
 export const searchSeries = async (filters = {}) => {
   const params = new URLSearchParams(filters).toString();
   try {
@@ -149,8 +141,7 @@ export const getFeaturedSeries = async ({
         `${API_URL}/most-popular?page=${page}&size=${size}`
       );
       const data = await checkResponse(response);
-      console.log(data);
-      // Verificación para asegurarse de que `data` tenga la estructura esperada
+
       if (!data || !Array.isArray(data.content)) {
         console.warn(
           `Estructura inesperada en la respuesta de la página ${page}:`,
@@ -159,7 +150,6 @@ export const getFeaturedSeries = async ({
         break;
       }
 
-      // Procesamiento de los datos si la estructura es correcta
       for (const serie of data.content) {
         if (
           featuredTitles.includes(serie.title) &&
@@ -170,12 +160,10 @@ export const getFeaturedSeries = async ({
         }
       }
 
-      // Terminar si todas las series han sido encontradas
       if (foundTitles.size >= featuredTitles.length) {
         break;
       }
 
-      // Si `data.last` existe y es `true`, significa que no hay más páginas
       if (data.last) {
         break;
       }
@@ -196,7 +184,7 @@ export const getSeriesByType = async (type) => {
     return checkResponse(response);
   } catch (error) {
     console.error(`Failed to fetch series with type ${type}:`, error);
-    return []; // Devuelve un array vacío para evitar problemas en el frontend
+    return [];
   }
 };
 export const fetchCast = async (id) => {
@@ -208,12 +196,12 @@ export const fetchCast = async (id) => {
     return [];
   }
 };
-const featuredSeriesIds = [194764, 4604, 141, 1412, 76331, 1409, 63333, 75219]; // Cambia estos valores por los IDs deseados
+const featuredSeriesIds = [194764, 4604, 141, 1412, 76331, 1409, 63333, 75219];
 
 export const getHeaderSeries = async () => {
   const seriesData = [];
   for (const id of featuredSeriesIds) {
-    const serie = await getSerie(id); // Usa la función `getSerie` para obtener cada serie por ID
+    const serie = await getSerie(id);
     if (serie) {
       seriesData.push(serie);
     }
@@ -221,10 +209,9 @@ export const getHeaderSeries = async () => {
   return seriesData;
 };
 
-// Función para obtener las series populares directamente desde el endpoint
 export const getPopularSeries = async () => {
   try {
-    const response = await fetch(`${API_URL}/most-popular?page=8`); // Endpoint directo para series populares
+    const response = await fetch(`${API_URL}/most-popular?page=8`);
     return checkResponse(response);
   } catch (error) {
     console.error("Failed to fetch popular series:", error);
@@ -232,7 +219,6 @@ export const getPopularSeries = async () => {
   }
 };
 
-// Función que verifica si la serie ya existe en la base de datos
 export const checkIfExistsInDb = async (id) => {
   try {
     const response = await fetch(`${API_URL}/check/${id}`);
@@ -244,13 +230,12 @@ export const checkIfExistsInDb = async (id) => {
   }
 };
 
-// Función para guardar la serie en la base de datos
 export const saveSerieToDatabase = async (serie) => {
   try {
     const response = await fetch(`${API_URL}`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json", // Quita charset=UTF-8
+        "Content-Type": "application/json",
         Accept: "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -270,7 +255,6 @@ export const saveSerieToDatabase = async (serie) => {
   }
 };
 
-// Función para verificar la respuesta de la API
 export async function checkResponse(response) {
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {

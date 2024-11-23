@@ -35,7 +35,7 @@ const RealNavbar = () => {
       className={`fixed top-0 left-0 w-full z-50 ${navbarStyle} text-white transition-colors duration-200`}
     >
       <div className="flex items-center justify-between py-4 px-4">
-        <h1 className="text-3xl font-bold text-white">
+        <h1 className="text-3xl font-bold font-montserrat text-white">
           <Link to={"/"}>vidaria</Link>
         </h1>
 

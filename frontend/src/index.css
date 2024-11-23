@@ -12,6 +12,14 @@
   font-style: normal;
 }
 
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0px 0px 1px rgba(0, 0, 0, 1),
+      /* Sombra centrada */ 1px 1px 1px rgba(0, 0, 0, 1),
+      /* Sombra en dirección diagonal */ -1px -1px 1px rgba(0, 0, 0, 1); /* Sombra opuesta */
+  }
+}
+
 #root {
   font-family: "Max Sans", sans-serif;
   background-color: #0a0a1a;
@@ -20,26 +28,25 @@
 }
 
 body {
-  background-color: #0A0A1A; /* Fondo del cuerpo */
-  overflow-y: auto; /* Asegura que el scroll vertical esté activo */
+  background-color: #0a0a1a;
+  overflow-y: auto;
 }
 
-/* Estiliza el scroll en navegadores compatibles */
 body::-webkit-scrollbar {
-  width: 10px; /* Ancho de la barra de scroll */
+  width: 10px;
 }
 
 body::-webkit-scrollbar-track {
-  background: #000000; /* Fondo de la pista */
+  background: transparent;
 }
 
 body::-webkit-scrollbar-thumb {
-  background: rgb(170, 73, 73); /* Color del pulgar (scroll) */
-  border-radius: 10px; /* Bordes redondeados */
+  background: #ffffff;
+  border-radius: 10px;
 }
 
 body::-webkit-scrollbar-thumb:hover {
-  background: #666; /* Color del pulgar al pasar el mouse */
+  background: #bbbaba;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -67,4 +74,22 @@ body::-webkit-scrollbar-thumb:hover {
   max-height: 300px;
   object-fit: cover;
   border-radius: 8px;
+}
+
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

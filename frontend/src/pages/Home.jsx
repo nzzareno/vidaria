@@ -43,7 +43,7 @@ const Home = () => {
     trending: 0,
     nowPlaying: 0,
     topRated: 0,
-    popularSeries: false,
+    popularSeries: 0,
   });
   const [isNextDisabled, setIsNextDisabled] = useState({
     popular: false,
@@ -82,10 +82,22 @@ const Home = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const getSlidesToShow = (width) => {
+    if (width >= 1440) return 8;
+    if (width >= 1200) return 5;
+    if (width >= 1100) return 4;
+    if (width >= 768) return 2;
+    return 1;
+  };
+
   const handleBeforeChange = useCallback(
     (category, current, next) => {
       const slidesToShow = getSlidesToShow(windowSize);
       setCurrentSlide((prev) => ({ ...prev, [category]: next }));
+
+      const filteredPopularSeries = popularSeries.filter(
+        (series) => series.poster
+      );
 
       const categoryItems = {
         popular: popularMovies,
@@ -94,13 +106,17 @@ const Home = () => {
         nowPlaying: nowPlayingMovies,
         topRated: topRatedMovies,
         topRatedSeries: topRatedSeries,
-        popularSeries: popularSeries, // Incluye Popular Series aquí
+        popularSeries: filteredPopularSeries,
       }[category];
 
       const totalItems = categoryItems.length;
-      const isAtEnd = next + slidesToShow >= totalItems;
 
-      setIsNextDisabled((prev) => ({ ...prev, [category]: isAtEnd }));
+      const isAtEnd = next >= totalItems - slidesToShow;
+
+      setIsNextDisabled((prev) => ({
+        ...prev,
+        [category]: isAtEnd,
+      }));
     },
     [
       popularMovies,
@@ -109,7 +125,7 @@ const Home = () => {
       nowPlayingMovies,
       topRatedMovies,
       topRatedSeries,
-      popularSeries, // Asegúrate de incluir Popular Series aquí
+      popularSeries,
       windowSize,
     ]
   );
@@ -118,7 +134,7 @@ const Home = () => {
     async (category, setMovies, pages = 3) => {
       try {
         const movies = [];
-        for (let page = 2; page <= pages; page++) {
+        for (let page = 1; page <= pages; page++) {
           const response = await getMoviesByCategory(category, {
             page,
             size: 20,
@@ -211,14 +227,6 @@ const Home = () => {
 
     loadAllContent();
   }, [fetchMoviesByCategory, dispatch]);
-
-  const getSlidesToShow = (width) => {
-    if (width >= 1440) return 8;
-    if (width >= 1200) return 5;
-    if (width >= 1100) return 4;
-    if (width >= 768) return 2;
-    return 1;
-  };
 
   const renderSliderSection = (
     title,
@@ -319,10 +327,8 @@ const Home = () => {
             )}
             {renderSliderSection(
               "Popular Series",
-              popularSeries
-                .filter((item) => item.poster) // Filtra solo series con pósteres válidos
-                .map((item) => ({ ...item, poster: item.poster })),
-              "popularSeries", // Asegúrate de que esta clave coincida con el estado
+              popularSeries.filter((series) => series.poster),
+              "popularSeries",
               "text-2xl md:text-3xl font-bold mb-4 text-white"
             )}
           </div>

@@ -28,7 +28,6 @@ export const fetchMovieDetails = async (id) => {
       `${API_BASE}/movies/${id}?api_key=${API_KEY}&language=en-US`
     );
 
-    // Verificar si la respuesta es exitosa
     if (!response.ok) {
       console.warn(
         `Movie with ID ${id} not found in database. Fetching from external API...`
@@ -36,13 +35,11 @@ export const fetchMovieDetails = async (id) => {
       return fetchMovieIfNotInDB(id, "movie");
     }
 
-    // Verificar si el cuerpo de la respuesta es vacío
     const text = await response.text();
     if (!text) {
       return fetchMovieIfNotInDB(id, "movie");
     }
 
-    // Si el cuerpo no es vacío, parsear como JSON
     return JSON.parse(text);
   } catch (error) {
     console.error("Error fetching movie details:", error);
@@ -56,10 +53,8 @@ export const fetchSerieDetails = async (id) => {
       `${API_BASE}/series/${id}?api_key=${API_KEY}&language=en-US`
     );
 
-    // Verificar si `last_air_date` está en la respuesta
     const data = response.ok ? await checkResponse(response) : null;
 
-    // Si `last_air_date` no está presente en `data`, intenta obtenerlo de la API de TMDb
     if (!data || !data.last_air_date) {
       console.warn(
         `Serie with ID ${id} not found in your API. Fetching from external TMDb API...`
@@ -359,7 +354,6 @@ export const fetchSimilar = async (id, type) => {
 
     const data = await response.json();
 
-    // Filtrar datos válidos
     const similarContent = data.results
       .filter(
         (item) =>

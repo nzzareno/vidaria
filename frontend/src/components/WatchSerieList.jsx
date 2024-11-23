@@ -25,7 +25,7 @@ const WatchSerieList = ({ series }) => {
       </h1>
 
       <div
-        ref={ref} // Referencia para el Intersection Observer
+        ref={ref}  
         className="flex flex-wrap justify-center py-24 gap-2 sm:gap-6 pb-20 items-center"
       >
         <motion.div

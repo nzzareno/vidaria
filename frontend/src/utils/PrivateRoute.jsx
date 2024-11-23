@@ -3,12 +3,11 @@ import { Navigate } from "react-router-dom";
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");
 
-  // Función para verificar si el token ha expirado
   const isTokenExpired = (token) => {
     if (!token) return true;
     const [, payload] = token.split(".");
     const decodedPayload = JSON.parse(atob(payload));
-    const expiryDate = decodedPayload.exp * 1000; // Convertir a milisegundos
+    const expiryDate = decodedPayload.exp * 1000;
     return Date.now() > expiryDate;
   };
 

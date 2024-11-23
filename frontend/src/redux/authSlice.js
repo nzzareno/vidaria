@@ -5,26 +5,30 @@ const authSlice = createSlice({
   initialState: {
     user: null,
     error: null,
+    loading: false,
   },
   reducers: {
     login: (state, action) => {
-      state.user = action.payload; // Actualiza el estado del usuario
-      state.error = null; // Limpia los errores
+      state.user = action.payload;
+      state.error = null;
     },
     logout: (state) => {
-      state.user = null; // Limpia el estado al cerrar sesión
+      state.user = null;
     },
     setError: (state, action) => {
-      state.error = action.payload; // Establece el error
+      state.error = action.payload;
     },
     clearError: (state) => {
-      state.error = null; // Limpia el error
+      state.error = null;
+    },
+
+    setLoading: (state, action) => {
+      state.loading = action.payload;
     },
   },
 });
 
-// Exporta las acciones
-export const { login, logout, setError, clearError } = authSlice.actions;
+export const { login, logout, setError, clearError, setLoading } =
+  authSlice.actions;
 
-// Exporta el reducer
 export default authSlice.reducer;

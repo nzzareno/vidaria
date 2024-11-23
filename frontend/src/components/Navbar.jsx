@@ -14,6 +14,7 @@ import ModalContext from "../context/ModalContext";
 import SuccessNotification from "./SuccessNotification";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import SyncLoader from "react-spinners/SyncLoader";
 
 const Navbar = () => {
   const {
@@ -31,6 +32,8 @@ const Navbar = () => {
   const error = useSelector((state) => state.auth.error);
   const [hovered, setHovered] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Estado para controlar el botón
   const [resetTokenValidated, setResetTokenValidated] = useState(false);
   const [forgotPasswordStep, setForgotPasswordStep] = useState(1); // 1: Ingresar email, 2: Loader, 3: Cambio de contraseña
   const [resetToken, setResetToken] = useState(""); // Almacenar token si es necesario
@@ -146,6 +149,16 @@ const Navbar = () => {
   }, [resetTokenValidated]);
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        handleCloseModal(); // Llama a la función para cerrar el modal
+      }
+    };
+    if (isModalOpen) document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen]);
+
+  useEffect(() => {
     console.log("Paso actual del flujo:", forgotPasswordStep);
   }, [forgotPasswordStep]);
 
@@ -181,8 +194,12 @@ const Navbar = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     dispatch(clearError());
-  };
 
+    // Cancelar espera del loader y resetear flujo de forgot password
+    if (modalType === "forgotPassword") {
+      setForgotPasswordStep(1); // Reinicia el flujo al paso inicial
+    }
+  };
   const validateFieldLogin = (name, value) => {
     let error = "";
     if (name === "username" && !value.trim()) {
@@ -262,7 +279,9 @@ const Navbar = () => {
   };
 
   const handleForgotPassword = async (email) => {
+    setIsLoading(true); // Bloquea el botón
     dispatch(setLoading(true)); // Muestra el loader
+
     try {
       const response = await fetch(
         "http://localhost:8081/auth/forgot-password",
@@ -273,22 +292,35 @@ const Navbar = () => {
         }
       );
 
+      const data = await response.json();
+
       if (response.ok) {
         setForgotPasswordStep(2); // Cambia al loader de espera
         console.log("Reset link enviado. Esperando validación del token...");
       } else {
-        const data = await response.json();
-        dispatch(setError(data.error || "Error enviando el correo."));
+        const errorMessage = data.error || "Email not found. Please try again.";
+        setFormErrors((prev) => ({ ...prev, email: errorMessage }));
+        console.error("Error:", errorMessage);
       }
     } catch (error) {
+      const unexpectedError = "An unexpected error occurred. Please try again.";
+      setFormErrors((prev) => ({ ...prev, email: unexpectedError }));
       console.error("Error inesperado:", error);
-      dispatch(setError("Error inesperado: " + error.message));
     } finally {
-      dispatch(setLoading(false)); // Oculta el loader al terminar
+      setIsLoading(false); // Desbloquea el botón
+      dispatch(setLoading(false)); // Oculta el loader
     }
   };
 
   const handleResetPassword = async () => {
+    if (newPassword.length < 8) {
+      setFormErrors((prev) => ({
+        ...prev,
+        password: "Password must be at least 8 characters long.",
+      }));
+      return; // Detén la ejecución si la contraseña no es válida
+    }
+
     console.log("Token enviado:", resetToken);
     console.log("Nueva contraseña enviada:", newPassword);
 
@@ -305,7 +337,7 @@ const Navbar = () => {
       const data = await response.json();
       if (response.ok) {
         console.log("Respuesta del servidor:", data);
-        setShowSuccess(true); // Muestra un mensaje de éxito
+        setPasswordChanged(true); // Muestra la notificación de éxito
         setIsModalOpen(false); // Cierra el modal
         setForgotPasswordStep(1); // Reinicia el flujo
       } else {
@@ -454,7 +486,7 @@ const Navbar = () => {
         >
           {forgotPasswordStep === 1 && (
             <div>
-             
+              {/* Input para el correo electrónico */}
               <input
                 type="email"
                 placeholder="Enter your email"
@@ -464,35 +496,81 @@ const Navbar = () => {
                 }
                 value={formData.email || ""}
               />
+
+              {/* Contenedor del mensaje de error */}
+              <div className="text-red-500 text-sm mt-2 min-h-[1.25rem]">
+                {formErrors.email}
+              </div>
+
+              {/* Botón para enviar el enlace de restablecimiento */}
               <button
-                className="w-full bg-indigo-500 text-white p-2 rounded-lg mt-4 hover:bg-indigo-600"
+                className={`w-full p-2 rounded-lg mt-4 ${
+                  isLoading
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-indigo-500 hover:bg-indigo-600"
+                } text-white`}
                 onClick={() => handleForgotPassword(formData.email)}
+                disabled={isLoading} // Deshabilita el botón si está cargando
               >
-                Send Reset Link
+                {isLoading ? "Sending..." : "Send Reset Link"}
               </button>
             </div>
           )}
+
           {forgotPasswordStep === 2 && (
-            <div className="flex flex-col items-center">
-              <p className="text-lg font-semibold text-white mb-4">
-                Please check your email for the reset link.
+            <div className="flex flex-col items-center overflow-hidden">
+              <p className="text-lg font-semibold text-white mb-14">
+                Please check your email {formData.email} for the reset link that
+                I sent you to change your password.
               </p>
-              <div className="loader"></div>
+              <SyncLoader color="#ffffff" size={18} />
+              <br />
             </div>
           )}
+
           {forgotPasswordStep === 3 && (
             <div>
-              <h2 className="text-lg font-bold mb-4">Reset Your Password</h2>
               <input
                 type="password"
                 placeholder="New Password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 text-black focus:outline-none focus:border-indigo-500"
+                className={`w-full px-3 py-2 border ${
+                  formErrors.password ? "border-red-500" : "border-gray-300"
+                } rounded-lg mb-4 text-black focus:outline-none focus:border-indigo-500`}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNewPassword(value);
+
+                  // Validar longitud de la contraseña
+                  if (value.length < 8) {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      password:
+                        "New password must be at least 8 characters long.",
+                    }));
+                  } else {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      password: "",
+                    }));
+                  }
+                }}
               />
+
+              <div className="min-h-[1.25rem] mt-1">
+                {formErrors.password && (
+                  <p className="text-red-500 text-sm">{formErrors.password}</p>
+                )}
+              </div>
+
               <button
-                className="w-full bg-indigo-500 text-white p-2 rounded-lg hover:bg-indigo-600"
+                className={`w-full ${
+                  formErrors.password
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
+                } text-white p-2 rounded-lg transition-colors duration-200 mt-6`}
                 onClick={handleResetPassword}
+                disabled={!!formErrors.password}
               >
                 Reset Password
               </button>
@@ -583,6 +661,13 @@ const Navbar = () => {
           message="¡Registro exitoso!"
           onClose={() => setShowSuccess(false)}
           className="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg "
+        />
+      )}
+      {passwordChanged && (
+        <SuccessNotification
+          message="Password changed!"
+          onClose={() => setPasswordChanged(false)}
+          className="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg"
         />
       )}
     </>

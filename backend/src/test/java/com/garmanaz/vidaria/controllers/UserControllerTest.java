@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.garmanaz.vidaria.entities.AppUser;
 import com.garmanaz.vidaria.entities.Role;
 import com.garmanaz.vidaria.repositories.UserRepository;
+import com.garmanaz.vidaria.services.EmailService;
 import com.garmanaz.vidaria.services.UserService;
 import com.garmanaz.vidaria.utils.JWT.JwtTokenUtil;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,9 @@ public class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private EmailService emailService;
 
     @MockBean
     private RestTemplateBuilder restTemplateBuilder;

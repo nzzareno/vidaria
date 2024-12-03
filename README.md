@@ -54,7 +54,7 @@ The easiest way to run Vidaria is with Docker Compose / La forma más sencilla d
    ```
 3. Access the following URLs once the services are running / Accede a las siguientes URL una vez que los servicios estén en ejecución:
    - **Backend**: [http://localhost:8081](http://localhost:8081)
-   - **Frontend**: [http://localhost:3000](http://localhost:3000)
+   - **Frontend**: [http://localhost:5173](http://localhost:5173)
 
 ### Manual Execution / Ejecución Manual
 
@@ -85,9 +85,9 @@ The easiest way to run Vidaria is with Docker Compose / La forma más sencilla d
    ```
 3. Start the development server / Ejecuta el servidor de desarrollo:
    ```bash
-   npm start
+   npm run dev
    ```
-4. Open your browser at / Abre tu navegador en [http://localhost:3000](http://localhost:3000).
+4. Open your browser at / Abre tu navegador en [http://localhost:5173](http://localhost:5173).
 
 ---
 
@@ -105,7 +105,11 @@ Make sure to configure the following environment variables / Asegúrate de confi
 
 ### Frontend
 
-- `REACT_APP_API_URL`: Backend URL (e.g., `http://localhost:8081`) / URL del backend (por ejemplo, `http://localhost:8081`).
+- `VITE_BACKEND_URL`: Backend URL (e.g., `http://localhost:8081`) / URL del backend (por ejemplo, `http://localhost:8081`).
+- `VITE_TMDB_SERIES_DETAILS_URL`: TMDB series details API endpoint / Endpoint para detalles de series de TMDB.
+- `VITE_TMDB_MOVIE_DETAILS_URL`: TMDB movie details API endpoint / Endpoint para detalles de películas de TMDB.
+- `VITE_API_KEY`: TMDB API key / Clave API de TMDB.
+- `VITE_TMDB_DETAILS`: TMDB base API URL / URL base de la API de TMDB.
 
 ---
 

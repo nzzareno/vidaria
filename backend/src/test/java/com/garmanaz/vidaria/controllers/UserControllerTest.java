@@ -16,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -63,6 +64,9 @@ public class UserControllerTest {
 
     @MockBean
     private UserDetailsService myUserDetailsService;
+
+    @MockBean
+    private RedisTemplate<String, Object> redisTemplate;
 
     @MockBean
     private AuthenticationManager authenticationManager;
